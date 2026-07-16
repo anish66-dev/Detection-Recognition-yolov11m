@@ -177,5 +177,7 @@ python -c "import onnxruntime as ort; print(ort.get_available_providers())"
 Then use `ctx_id=0` in `pipeline.py` model `prepare(...)` calls.
 
 Integration of the following:
+
 https://github.com/Chatradhara007/human-detection-yolov11m
+
 https://github.com/P-Akshay-kumar/buffalo-recognition-demo
