@@ -1,0 +1,47 @@
+# Virtual environment
+.venv/
+venv/
+venv311/
+env/
+.env/
+
+# Model weights (too large for GitHub)
+*.pt
+*.pth
+*.onnx
+
+# Video files
+uploads/
+outputs/
+coords/
+video_test/output/
+video_test/models/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Generated analysis artifacts
+*.pkl
+*.npy
+lfw_full_histogram.png
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log

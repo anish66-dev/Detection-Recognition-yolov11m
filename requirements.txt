@@ -1,0 +1,17 @@
+# Core dependencies for the web app (app.py + pipeline.py + index.html)
+# Install with:
+#   pip install -r requirements.txt
+
+# Detection + CV
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Web API
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Face recognition (InsightFace ONNX)
+insightface>=0.7.3
+onnx>=1.16.0
+onnxruntime>=1.18.0

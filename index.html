@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YOLOv11m Human Detection</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 2rem
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 4px
+    }
+
+    .sub {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 1.25rem
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      background: #1a3a2a;
+      color: #4ade80;
+      margin-left: 8px;
+      vertical-align: middle
+    }
+
+    .server-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 1.25rem;
+      padding: 8px 14px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px
+    }
+
+    .sdot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      flex-shrink: 0;
+      transition: background .3s
+    }
+
+    .sdot.on {
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80
+    }
+
+    .sdot.off {
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444
+    }
+
+    .slabel {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 600;
+      margin-bottom: 8px;
+      margin-top: 1.1rem
+    }
+
+    .upload-zone {
+      border: 2px dashed #2a2a2a;
+      border-radius: 10px;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag {
+      border-color: #4ade80;
+      background: #0a1a10
+    }
+
+    .upload-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%
+    }
+
+    .upload-zone .icon {
+      font-size: 30px;
+      margin-bottom: 8px
+    }
+
+    .upload-zone p {
+      font-size: 14px;
+      color: #777
+    }
+
+    .upload-zone span {
+      font-size: 12px;
+      color: #444;
+      margin-top: 3px;
+      display: block
+    }
+
+    .file-info {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-size: 13px;
+      color: #888;
+      margin-top: 8px;
+      display: none;
+      align-items: center;
+      gap: 8px
+    }
+
+    .file-info.show {
+      display: flex
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px
+    }
+
+    .chip {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #777
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px
+    }
+
+    .cc {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px
+    }
+
+    .cc label {
+      font-size: 11px;
+      color: #555;
+      display: block;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: .05em
+    }
+
+    .cc .val {
+      font-size: 20px;
+      font-weight: 600
+    }
+
+    .cc input[type=range] {
+      width: 100%;
+      margin-top: 5px;
+      accent-color: #4ade80
+    }
+
+    .cc .hint {
+      font-size: 11px;
+      color: #444;
+      margin-top: 3px
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px
+    }
+
+    .btn-green {
+      background: #16a34a;
+      color: #fff;
+      margin-top: .9rem
+    }
+
+    .btn-green:hover {
+      background: #15803d
+    }
+
+    .btn-green:disabled {
+      background: #1a1a1a;
+      color: #333;
+      cursor: not-allowed;
+      border: 1px solid #2a2a2a
+    }
+
+    .btn-blue {
+      background: #1d4ed8;
+      color: #fff
+    }
+
+    .btn-blue:hover {
+      background: #1e40af
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #ccc;
+      border: 1px solid #333
+    }
+
+    .btn-outline:hover {
+      background: #1a1a1a
+    }
+
+    .progress-box {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 1.1rem;
+      margin-top: .9rem;
+      display: none
+    }
+
+    .progress-box.show {
+      display: block
+    }
+
+    .pw {
+      background: #222;
+      border-radius: 20px;
+      height: 5px;
+      margin: 9px 0;
+      overflow: hidden
+    }
+
+    .pb {
+      height: 100%;
+      background: #4ade80;
+      border-radius: 20px;
+      width: 0%;
+      transition: width .3s
+    }
+
+    .stages {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 8px
+    }
+
+    .stage {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #333;
+      padding: 5px 8px;
+      border-radius: 6px;
+      transition: all .2s
+    }
+
+    .stage.done {
+      color: #4ade80;
+      background: #0a1a10
+    }
+
+    .stage.active {
+      color: #60a5fa;
+      background: #0d1525;
+      font-weight: 500
+    }
+
+    .stage .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0
+    }
+
+    .result-box {
+      margin-top: 1.25rem;
+      display: none
+    }
+
+    .result-box.show {
+      display: block
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 1rem
+    }
+
+    .stat {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center
+    }
+
+    .stat .num {
+      font-size: 20px;
+      font-weight: 700;
+      color: #4ade80
+    }
+
+    .stat .lbl {
+      font-size: 10px;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-top: 2px
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: .9rem
+    }
+
+    .vbox {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      overflow: hidden
+    }
+
+    .vbox .vtitle {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 9px 12px 5px;
+      font-weight: 600
+    }
+
+    .vbox.hl {
+      border-color: #4ade80
+    }
+
+    .vbox .vtitle.hl {
+      color: #4ade80
+    }
+
+    .vbox video {
+      width: 100%;
+      display: block;
+      background: #000;
+      max-height: 240px;
+      object-fit: contain
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px
+    }
+
+    .err {
+      background: #1f0d0d;
+      border: 1px solid #4a1515;
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-size: 13px;
+      color: #f87171;
+      margin-top: .9rem;
+      display: none
+    }
+
+    .err.show {
+      display: block
+    }
+
+    .codec-warn {
+      background: #1f1a0d;
+      border: 1px solid #4a3a15;
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-size: 12px;
+      color: #fbbf24;
+      margin-top: .9rem;
+      display: none
+    }
+
+    .codec-warn.show {
+      display: block
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Human Detection <span class="badge">⚡ YOLOv11m</span></h1>
+    <p class="sub">Upload a video · Detect persons and recognize faces from your reference photos · View side-by-side ·
+      Download annotated video + coordinates CSV</p>
+
+    <div class="server-bar">
+      <div class="sdot" id="sDot"></div>
+      <span id="sLabel">Checking server...</span>
+    </div>
+
+    <p class="slabel">1 · Upload video</p>
+    <div class="upload-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="video/*">
+      <div class="icon">🎬</div>
+      <p>Drop your video here or click to browse</p>
+      <span>MP4, AVI, MOV, MKV · Any resolution · Any FPS</span>
+    </div>
+    <div class="file-info" id="fileInfo">
+      <span>📄</span><span id="fileName"></span><span id="fileSize" style="color:#444"></span>
+    </div>
+    <div class="chips" id="vChips" style="display:none">
+      <div class="chip" id="resChip"></div>
+      <div class="chip" id="durChip"></div>
+      <div class="chip" id="frmChip"></div>
+    </div>
+
+    <p class="slabel">2 · Configure</p>
+    <div class="config-grid">
+      <div class="cc">
+        <label>Recognition stride</label>
+        <div class="val" id="recEveryVal">5 frames</div>
+        <input type="range" min="1" max="15" value="5" step="1" id="recEverySlider">
+        <div class="hint">Run face recognition every Nth frame</div>
+      </div>
+      <div class="cc"><label>Confidence</label>
+        <div class="val" id="confVal">0.40</div><input type="range" min="10" max="90" value="40" step="5"
+          id="confSlider">
+        <div class="hint">Higher = fewer, more certain</div>
+      </div>
+      <div class="cc"><label>IoU (NMS)</label>
+        <div class="val" id="iouVal">0.45</div><input type="range" min="10" max="90" value="45" step="5" id="iouSlider">
+        <div class="hint">Lower = fewer overlapping boxes</div>
+      </div>
+      <div class="cc"><label>Box thickness</label>
+        <div class="val" id="thickVal">2 px</div><input type="range" min="1" max="6" value="2" step="1"
+          id="thickSlider">
+        <div class="hint">Bounding box stroke width</div>
+      </div>
+      <div class="cc"><label>Label size</label>
+        <div class="val" id="fontVal">16 px</div><input type="range" min="10" max="28" value="16" step="2"
+          id="fontSlider">
+        <div class="hint">Person label font size</div>
+      </div>
+    </div>
+
+    <p class="slabel">3 · Run</p>
+    <button class="btn btn-green" id="runBtn" disabled onclick="startProcessing()">🔍 Run YOLOv11m Detection</button>
+
+    <div class="err" id="errBox"></div>
+
+    <div class="codec-warn" id="codecWarn">
+      ⚠️ ffmpeg not found on your system — video may not play in browser. Install ffmpeg and add it to PATH for best
+      results. The download will still work.
+    </div>
+
+    <div class="progress-box" id="progBox">
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px" id="progTitle">Processing…</div>
+      <div style="font-size:12px;color:#555" id="progSub">Please wait — do not close this tab</div>
+      <div class="pw">
+        <div class="pb" id="pb"></div>
+      </div>
+      <div class="stages">
+        <div class="stage" id="s0">
+          <div class="dot"></div>Extract frames from video
+        </div>
+        <div class="stage" id="s1">
+          <div class="dot"></div>Run YOLOv11m + face recognition on every frame
+        </div>
+        <div class="stage" id="s2">
+          <div class="dot"></div>Draw bounding boxes and names
+        </div>
+        <div class="stage" id="s3">
+          <div class="dot"></div>Save bounding box coordinates to CSV
+        </div>
+        <div class="stage" id="s4">
+          <div class="dot"></div>Re-encode video to H264 (browser compatible)
+        </div>
+        <div class="stage" id="s5">
+          <div class="dot"></div>Sending annotated video to browser
+        </div>
+      </div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <div style="font-size:16px;font-weight:600;margin-bottom:10px">✅ Detection complete</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="num" id="rFrames">—</div>
+          <div class="lbl">Frames</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="rDet">—</div>
+          <div class="lbl">Detections</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="rPeak">—</div>
+          <div class="lbl">Peak/frame</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="rCoords">—</div>
+          <div class="lbl">CSV rows</div>
+        </div>
+      </div>
+
+      <div class="video-grid">
+        <div class="vbox">
+          <div class="vtitle">📹 Original upload</div>
+          <video id="origVid" controls></video>
+        </div>
+        <div class="vbox hl">
+          <div class="vtitle hl">🟢 Annotated output</div>
+          <video id="outVid" controls></video>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-green" style="flex:1" onclick="dlVideo()">⬇️ Download annotated video</button>
+        <button class="btn btn-blue" style="flex:1" id="csvBtn" onclick="dlCSV()">📊 Download coordinates CSV</button>
+        <button class="btn btn-outline" style="flex:0 0 auto;padding:12px 18px" onclick="resetApp()"
+          title="New video">↺</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'http://localhost:5000';
+    let selFile = null, resBlob = null, origURL = null, jobId = null;
+
+
+    document.getElementById('recEverySlider').oninput = e =>
+      document.getElementById('recEveryVal').textContent = e.target.value + ' frames';
+    // Sliders
+    document.getElementById('confSlider').oninput = e => document.getElementById('confVal').textContent = (e.target.value / 100).toFixed(2);
+    document.getElementById('iouSlider').oninput = e => document.getElementById('iouVal').textContent = (e.target.value / 100).toFixed(2);
+    document.getElementById('thickSlider').oninput = e => document.getElementById('thickVal').textContent = e.target.value + ' px';
+    document.getElementById('fontSlider').oninput = e => document.getElementById('fontVal').textContent = e.target.value + ' px';
+
+    // Server check
+    async function checkServer() {
+      const dot = document.getElementById('sDot'), lbl = document.getElementById('sLabel');
+      try {
+        const r = await fetch(BASE + '/health', { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        dot.className = 'sdot on';
+        lbl.textContent = 'Server online · YOLOv11m + recognition ready · CUDA: ' + (d.cuda ? '✅ GPU' : '⚠️ CPU') + (d.ffmpeg ? ' · ffmpeg ✅' : ' · ffmpeg ❌ (install for browser playback)') + (d.recognition_ready ? ' · refs: ' + (d.reference_faces || 0) : ' · no reference faces found');
+        if (!d.ffmpeg) document.getElementById('codecWarn').classList.add('show');
+        else document.getElementById('codecWarn').classList.remove('show');
+      } catch {
+        dot.className = 'sdot off';
+        lbl.textContent = 'Server offline — run: python app.py in your terminal';
+      }
+    }
+    checkServer();
+    setInterval(checkServer, 8000);
+
+    // File drop/select
+    const dz = document.getElementById('dropZone'), fi = document.getElementById('fileInput');
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag') });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]) });
+    fi.addEventListener('change', () => { if (fi.files[0]) handleFile(fi.files[0]) });
+
+    function handleFile(f) {
+      selFile = f;
+      origURL = URL.createObjectURL(f);
+      document.getElementById('fileName').textContent = f.name;
+      document.getElementById('fileSize').textContent = ' (' + Math.round(f.size / 1024 / 1024 * 10) / 10 + ' MB)';
+      document.getElementById('fileInfo').classList.add('show');
+      const v = document.createElement('video');
+      v.preload = 'metadata'; v.src = origURL;
+      v.onloadedmetadata = () => {
+        document.getElementById('resChip').textContent = '🖥 ' + v.videoWidth + '×' + v.videoHeight;
+        const d = Math.round(v.duration);
+        document.getElementById('durChip').textContent = '⏱ ' + Math.floor(d / 60) + ':' + (d % 60).toString().padStart(2, '0');
+        document.getElementById('frmChip').textContent = '🎞 ~' + Math.round(v.duration * 30) + ' frames';
+        document.getElementById('vChips').style.display = 'flex';
+      };
+      document.getElementById('runBtn').disabled = false;
+      document.getElementById('errBox').classList.remove('show');
+    }
+
+    const SIDS = ['s0', 's1', 's2', 's3', 's4', 's5'];
+    function setStage(i) { SIDS.forEach((id, j) => document.getElementById(id).className = 'stage' + (j < i ? ' done' : j === i ? ' active' : '')); }
+    function allDone() { SIDS.forEach(id => document.getElementById(id).className = 'stage done'); }
+    function setProg(p, t) { document.getElementById('pb').style.width = p + '%'; if (t) document.getElementById('progSub').textContent = t; }
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+    async function startProcessing() {
+      if (!selFile) return;
+      document.getElementById('errBox').classList.remove('show');
+      document.getElementById('resultBox').classList.remove('show');
+      document.getElementById('progBox').classList.add('show');
+      document.getElementById('runBtn').disabled = true;
+      document.getElementById('progTitle').textContent = 'Processing…';
+      setProg(0, 'Uploading video…'); setStage(0);
+      
+      const fd = new FormData();
+      fd.append('video', selFile);
+      fd.append('conf', document.getElementById('confSlider').value / 100);
+      fd.append('iou', document.getElementById('iouSlider').value / 100);
+      fd.append('thickness', document.getElementById('thickSlider').value);
+      fd.append('font_size', document.getElementById('fontSlider').value);
+      fd.append('recognition_every', document.getElementById('recEverySlider').value);
+      
+      const iv = animateProg(5, 88, 90000);
+      try {
+        const res = await fetch(BASE + '/process', { method: 'POST', body: fd });
+        clearInterval(iv);
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error('Server error ' + res.status + ': ' + t.substring(0, 200));
+        }
+        setStage(5); setProg(90, 'Receiving video…');
+
+        const blob = await res.blob();
+        if (!blob || blob.size === 0) throw new Error('Server returned empty video');
+
+        resBlob = blob;
+        try {
+          const s = JSON.parse(res.headers.get('X-Stats') || '{}');
+          document.getElementById('rFrames').textContent = s.frames || '—';
+          document.getElementById('rDet').textContent = s.total_detections || '—';
+          document.getElementById('rPeak').textContent = s.peak_per_frame || '—';
+          document.getElementById('rCoords').textContent = s.coords_rows || '—';
+          jobId = s.job_id || null;
+        } catch (e) { }
+
+        setProg(100, 'Done!'); allDone();
+        document.getElementById('progTitle').textContent = '✅ Done!';
+
+        // Show original video
+        document.getElementById('origVid').src = origURL;
+
+        // Show annotated video
+        const videoURL = URL.createObjectURL(new Blob([blob], { type: 'video/mp4' }));
+        const outVid = document.getElementById('outVid');
+        outVid.src = videoURL;
+        outVid.load();
+
+        document.getElementById('resultBox').classList.add('show');
+        document.getElementById('runBtn').disabled = false;
+
+      } catch (err) {
+        clearInterval(iv);
+        document.getElementById('errBox').textContent = '❌ ' + err.message;
+        document.getElementById('errBox').classList.add('show');
+        document.getElementById('progTitle').textContent = 'Error — check terminal for details';
+        document.getElementById('runBtn').disabled = false;
+      }
+    }
+
+    function animateProg(from, to, ms) {
+      const steps = [
+        [0, 'Uploading video…', 0],
+        [8, 'Extracting frames…', 0],
+        [15, 'Running YOLOv11m inference…', 1],
+        [50, 'Drawing bounding boxes…', 2],
+        [70, 'Saving coordinates CSV…', 3],
+        [80, 'Re-encoding to H264…', 4],
+        [88, 'Finishing…', 4],
+      ];
+      let cur = from;
+      const step = (to - from) / (ms / 150);
+      return setInterval(() => {
+        cur = Math.min(cur + step, to);
+        document.getElementById('pb').style.width = Math.round(cur) + '%';
+        for (const [p, t, si] of steps) { if (cur >= p) { document.getElementById('progSub').textContent = t; setStage(si); } }
+      }, 150);
+    }
+
+    function dlVideo() {
+      if (!resBlob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(resBlob);
+      a.download = 'detected_' + selFile.name;
+      a.click();
+    }
+
+    function dlCSV() {
+      if (!jobId) { alert('No job ID — please run detection first'); return; }
+      window.open(BASE + '/coords/' + jobId, '_blank');
+    }
+
+    function resetApp() {
+      selFile = null; resBlob = null; origURL = null; jobId = null;
+      document.getElementById('fileInfo').classList.remove('show');
+      document.getElementById('vChips').style.display = 'none';
+      document.getElementById('progBox').classList.remove('show');
+      document.getElementById('resultBox').classList.remove('show');
+      document.getElementById('errBox').classList.remove('show');
+      document.getElementById('runBtn').disabled = true;
+      document.getElementById('pb').style.width = '0%';
+      fi.value = '';
+      SIDS.forEach(id => document.getElementById(id).className = 'stage');
+    }
+  </script>
+</body>
+
+</html>
