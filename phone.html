@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phone Camera — Security Platform</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0b0f14; color: #e6edf3;
+    min-height: 100vh;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #8b949e; font-size: 13px; margin-bottom: 16px; }
+
+  #preview {
+    width: 100%; border-radius: 12px; background: #000;
+    aspect-ratio: 4 / 3; object-fit: cover; display: block;
+  }
+  canvas { display: none; }
+
+  .row { display: flex; gap: 10px; margin-top: 14px; }
+  button {
+    flex: 1; padding: 15px 12px; font-size: 15px; font-weight: 600;
+    border: 0; border-radius: 10px; color: #fff; background: #238636;
+  }
+  button.secondary { background: #21262d; border: 1px solid #30363d; }
+  button:disabled { opacity: .45; }
+
+  .stats {
+    margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+    background: #11161d; border: 1px solid #21262d;
+    font-size: 13px; line-height: 1.9; font-variant-numeric: tabular-nums;
+  }
+  .stats b { color: #58a6ff; }
+
+  .banner {
+    margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+    font-size: 13px; line-height: 1.55; display: none;
+  }
+  .banner.err  { background: #2d1214; border: 1px solid #6e2427; color: #ffb3b8; display: block; }
+  .banner.warn { background: #2b2412; border: 1px solid #6b5220; color: #f0d58c; display: block; }
+  .banner code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#484f58; margin-right:6px; }
+  .dot.live { background:#3fb950; }
+</style>
+</head>
+<body>
+
+<h1>Phone Camera</h1>
+<div class="sub">Streams this phone's camera to the detection server.</div>
+
+<video id="preview" playsinline autoplay muted></video>
+<canvas id="canvas"></canvas>
+
+<div class="row">
+  <button id="startBtn">Start streaming</button>
+  <button id="flipBtn" class="secondary">Flip</button>
+</div>
+<div class="row">
+  <button id="stopBtn" class="secondary" disabled>Stop</button>
+</div>
+
+<div class="stats">
+  <div><span class="dot" id="dot"></span><b id="state">Idle</b></div>
+  <div>Sent: <b id="sent">0</b> frames</div>
+  <div>Rate: <b id="fps">0</b> fps &nbsp;·&nbsp; Size: <b id="size">—</b></div>
+  <div>Dropped: <b id="dropped">0</b></div>
+</div>
+
+<div class="banner" id="banner"></div>
+
+<script>
+// ── config ───────────────────────────────────────────────────────────────────
+// Frames are sent one at a time: the next capture waits for the previous POST
+// to finish. Firing on a fixed timer instead would pile up requests the moment
+// the network hiccups, and every queued frame is already stale on arrival.
+const TARGET_FPS   = 12;
+const JPEG_QUALITY = 0.6;
+const MAX_WIDTH    = 960;   // downscale before sending; the server runs detection at 640
+
+const video  = document.getElementById('preview');
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const banner = document.getElementById('banner');
+
+let stream = null, streaming = false, facing = 'environment';
+let sent = 0, dropped = 0, lastTick = 0, fpsAvg = 0, wakeLock = null;
+
+function show(kind, html) {
+  banner.className = 'banner ' + kind;
+  banner.innerHTML = html;
+}
+function hideBanner() { banner.className = 'banner'; }
+
+function setState(text, live) {
+  document.getElementById('state').textContent = text;
+  document.getElementById('dot').className = 'dot' + (live ? ' live' : '');
+}
+
+// getUserMedia is only exposed on a secure origin. Over plain http:// on a LAN
+// IP the API is simply absent, which otherwise looks like a permissions bug.
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  const httpsUrl = location.href.replace(/^http:/, 'https:');
+  show('err',
+    '<b>Camera unavailable on this page.</b><br><br>' +
+    'Browsers only allow camera access over HTTPS or on localhost. ' +
+    'Restart the server with <code>python app.py --https</code> and open ' +
+    '<code>' + httpsUrl + '</code> instead (accept the self-signed certificate warning).' +
+    '<br><br>Alternatively use an IP-camera app and paste its URL into the ' +
+    'main dashboard — that path needs no HTTPS.');
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('flipBtn').disabled = true;
+}
+
+async function openCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false
+  });
+  video.srcObject = stream;
+  await video.play();
+}
+
+async function sendLoop() {
+  const minInterval = 1000 / TARGET_FPS;
+
+  while (streaming) {
+    const t0 = performance.now();
+
+    if (!video.videoWidth) { await sleep(100); continue; }
+
+    const scale = Math.min(1, MAX_WIDTH / video.videoWidth);
+    canvas.width  = Math.round(video.videoWidth  * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    document.getElementById('size').textContent = canvas.width + '×' + canvas.height;
+
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', JPEG_QUALITY));
+    if (!blob) { await sleep(minInterval); continue; }
+
+    try {
+      const res = await fetch('/camera/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: blob
+      });
+      if (res.ok) {
+        sent++;
+        document.getElementById('sent').textContent = sent;
+        hideBanner();
+      } else {
+        dropped++;
+        document.getElementById('dropped').textContent = dropped;
+      }
+    } catch (e) {
+      dropped++;
+      document.getElementById('dropped').textContent = dropped;
+      show('warn', 'Lost connection to the server — retrying. Check that the phone is still on the same Wi-Fi.');
+    }
+
+    const now = performance.now();
+    if (lastTick) {
+      const inst = 1000 / (now - lastTick);
+      fpsAvg = fpsAvg ? (fpsAvg * 0.8 + inst * 0.2) : inst;
+      document.getElementById('fps').textContent = fpsAvg.toFixed(1);
+    }
+    lastTick = now;
+
+    const slack = minInterval - (now - t0);
+    if (slack > 0) await sleep(slack);
+  }
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+document.getElementById('startBtn').onclick = async () => {
+  try {
+    await openCamera();
+  } catch (e) {
+    show('err', '<b>Could not open the camera.</b><br>' + e.message +
+                '<br><br>If you denied the permission prompt, allow camera access ' +
+                'for this site in your browser settings and reload.');
+    return;
+  }
+
+  streaming = true;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  setState('Streaming', true);
+
+  // Without this the screen sleeps after ~30s and the camera track stops.
+  try {
+    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) { /* non-fatal */ }
+
+  sendLoop();
+};
+
+document.getElementById('stopBtn').onclick = () => {
+  streaming = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  setState('Stopped', false);
+};
+
+document.getElementById('flipBtn').onclick = async () => {
+  facing = (facing === 'environment') ? 'user' : 'environment';
+  if (stream) {
+    try { await openCamera(); }
+    catch (e) { show('err', 'Could not switch camera: ' + e.message); }
+  }
+};
+
+// Re-acquire the wake lock when the user tabs back in.
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && streaming && 'wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+});
+</script>
+</body>
+</html>

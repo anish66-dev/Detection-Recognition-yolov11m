@@ -1,0 +1,39 @@
+# Virtual environment
+venv/
+venv311/
+env/
+.env/
+
+# Model weights (too large for GitHub)
+*.pt
+*.pth
+*.onnx
+
+# Video files
+uploads/
+outputs/
+coords/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log

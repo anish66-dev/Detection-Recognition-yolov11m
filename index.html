@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- ⚡ Theme init — runs before CSS renders to prevent flash of wrong theme -->
+<script>
+(function(){
+  const t = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOLOv11m Security Platform</title>
+<meta name="description" content="Real-time human detection, face recognition and restricted-entry alerting powered by YOLOv11m and InsightFace">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME — Default (:root)
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg:            #F8FAFC;
+  --bg-2:          #F1F5F9;
+  --card:          #FFFFFF;
+  --card-2:        #F8FAFC;
+  --border:        #E2E8F0;
+  --border-2:      #CBD5E1;
+  --accent:        #2563EB;
+  --accent-hover:  #1D4ED8;
+  --accent-dim:    rgba(37,99,235,0.09);
+  --success:       #16A34A;
+  --success-bright:#22C55E;
+  --success-dim:   rgba(22,163,74,0.1);
+  --danger:        #DC2626;
+  --danger-dim:    rgba(220,38,38,0.09);
+  --warning:       #D97706;
+  --warning-dim:   rgba(217,119,6,0.1);
+  --purple:        #7C3AED;
+  --purple-dim:    rgba(124,58,237,0.09);
+  --text:          #0F172A;
+  --text-2:        #475569;
+  --text-3:        #94A3B8;
+  --shadow:        0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.1);
+  --topbar-bg:     rgba(255,255,255,0.92);
+  --canvas-overlay:rgba(255,255,255,0.85);
+  --input-bg:      #F8FAFC;
+  --scrollbar:     #CBD5E1;
+  --toggle-track:  #E2E8F0;
+  --progress-track:#E2E8F0;
+  --radius-sm:     6px;
+  --radius:        10px;
+  --radius-lg:     14px;
+  --transition:    all 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK THEME — [data-theme="dark"]
+═══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg:            #09090B;
+  --bg-2:          #0D0D10;
+  --card:          #111827;
+  --card-2:        #161B2E;
+  --border:        #27272A;
+  --border-2:      #1F2937;
+  --accent:        #3B82F6;
+  --accent-hover:  #2563EB;
+  --accent-dim:    rgba(59,130,246,0.12);
+  --success:       #22C55E;
+  --success-bright:#4ADE80;
+  --success-dim:   rgba(34,197,94,0.12);
+  --danger:        #EF4444;
+  --danger-dim:    rgba(239,68,68,0.12);
+  --warning:       #F59E0B;
+  --warning-dim:   rgba(245,158,11,0.12);
+  --purple:        #8B5CF6;
+  --purple-dim:    rgba(139,92,246,0.12);
+  --text:          #FAFAFA;
+  --text-2:        #A1A1AA;
+  --text-3:        #52525B;
+  --shadow:        0 1px 3px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.6);
+  --topbar-bg:     rgba(9,9,11,0.88);
+  --canvas-overlay:rgba(0,0,0,0.72);
+  --input-bg:      #0D0D10;
+  --scrollbar:     #27272A;
+  --toggle-track:  #27272A;
+  --progress-track:#27272A;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMOOTH THEME TRANSITIONS
+═══════════════════════════════════════════════════════════════ */
+body,
+.topbar,
+.main-content,
+.card, .cc, .stat, .vbox, .zone-wrap,
+.upload-zone, .file-info, .chip,
+.progress-box, .result-box,
+.tabs, .tab,
+.warn-bar, .err,
+.btn, .btn-cta, .btn-auto,
+.status-pill, .badge,
+.zone-chip, .alert-row,
+.table-wrap, table, th, td,
+.webcam-container, .wc-status, .lp-overlay, .fps-badge,
+.auto-result, .page-header, .slabel,
+input[type=text], input[type=file], select,
+.pw, .zone-placeholder, .wc-placeholder,
+.toggle-row, .toggle-track,
+.live-preview-box, .zone-stat-row {
+  transition: background-color 0.25s ease, border-color 0.25s ease,
+              color 0.2s ease, box-shadow 0.25s ease;
+}
+/* Don't transition layout properties during theme switch */
+.btn, .btn-cta { transition: background-color 0.25s ease, border-color 0.25s ease,
+  color 0.2s ease, box-shadow 0.25s ease, transform 0.18s ease; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent-dim); color: var(--accent); }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════════════════════ */
+.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── Top Navigation Bar ─────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.topbar-logo {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.topbar-logo svg { color: #fff; }
+.topbar-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.topbar-name span { color: var(--text-3); font-weight: 400; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+/* ─── Theme Toggle Button ────────────────────────────────────── */
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: background-color 0.25s ease, border-color 0.25s ease,
+              color 0.2s ease, transform 0.15s ease;
+}
+.theme-toggle:hover {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--border-2);
+  transform: scale(1.05);
+}
+.theme-toggle svg {
+  position: absolute;
+  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+/* Light mode: show moon (to switch to dark) */
+.icon-sun  { opacity: 0; transform: rotate(120deg) scale(0.6); }
+.icon-moon { opacity: 1; transform: rotate(0deg)   scale(1); }
+/* Dark mode: show sun (to switch to light) */
+[data-theme="dark"] .icon-sun  { opacity: 1; transform: rotate(0deg)    scale(1); }
+[data-theme="dark"] .icon-moon { opacity: 0; transform: rotate(-120deg) scale(0.6); }
+
+/* ─── Status Pills ───────────────────────────────────────────── */
+.topbar-status { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  background: var(--card);
+  white-space: nowrap;
+}
+.status-pill .sdot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.status-pill .sdot.on  { background: var(--success);  box-shadow: 0 0 6px var(--success); }
+.status-pill .sdot.off { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+/* ─── Main content ───────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  padding: 2rem 1.5rem;
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── Page header ────────────────────────────────────────────── */
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.page-header .sub {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 5px;
+  line-height: 1.6;
+}
+
+/* ─── Tech badge ─────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--success-dim);
+  color: var(--success);
+  border: 1px solid rgba(22,163,74,0.2);
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+[data-theme="dark"] .badge {
+  border-color: rgba(34,197,94,0.25);
+}
+
+/* ─── Warning Bars ───────────────────────────────────────────── */
+.warn-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--warning-dim);
+  border: 1px solid rgba(217,119,6,0.25);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--warning);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.warn-bar.show { display: flex; }
+[data-theme="dark"] .warn-bar { border-color: rgba(245,158,11,0.3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB NAVIGATION
+═══════════════════════════════════════════════════════════════ */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.75rem;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  gap: 0;
+  background: transparent;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  user-select: none;
+  border-radius: 0;
+}
+.tab:hover { color: var(--text-2); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab svg { opacity: 0.6; transition: opacity 0.2s; }
+.tab.active svg { opacity: 1; }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 1rem; }
+
+/* ─── Section Labels ─────────────────────────────────────────── */
+.slabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.slabel:first-child { margin-top: 0; }
+.slabel::before {
+  content: '';
+  width: 3px;
+  height: 13px;
+  background: var(--accent);
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  margin-bottom: 10px;
+}
+.section-head .slabel { margin: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════════════════════════ */
+.upload-zone {
+  border: 1.5px dashed var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+.upload-zone:hover, .upload-zone.drag {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.upload-zone:hover .upload-icon, .upload-zone.drag .upload-icon {
+  color: var(--accent);
+  transform: scale(1.08) translateY(-4px);
+}
+.upload-zone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.upload-icon {
+  color: var(--text-3);
+  margin-bottom: 12px;
+  display: block;
+  transition: color 0.2s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.upload-zone p {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.upload-zone span { font-size: 12px; color: var(--text-3); display: block; }
+
+/* ─── File info ──────────────────────────────────────────────── */
+.file-info {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 10px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+.file-info.show { display: flex; }
+.file-info svg { color: var(--accent); flex-shrink: 0; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONFIG CARDS & SLIDERS
+═══════════════════════════════════════════════════════════════ */
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.cc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+.cc:hover { border-color: var(--border-2); }
+[data-theme="dark"] .cc:hover { border-color: rgba(59,130,246,0.3); }
+.cc label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.cc .val {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.cc .hint { font-size: 11px; color: var(--text-3); margin-top: 5px; line-height: 1.5; }
+.cc input[type=text], .cc select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  margin-top: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.cc input[type=text]:focus, .cc select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.cc select option { background: var(--card); color: var(--text); }
+
+/* ─── Custom Range Slider ────────────────────────────────────── */
+.cc input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--progress-track);
+  outline: none;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.25s;
+}
+.cc input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.cc input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 5px var(--accent-dim);
+}
+.cc input[type=range]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--card);
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTO-CALIBRATE
+═══════════════════════════════════════════════════════════════ */
+.btn-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--purple-dim);
+  border: 1px solid rgba(124,58,237,0.25);
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-auto:hover { background: rgba(124,58,237,0.15); border-color: var(--purple); }
+.btn-auto:disabled { opacity: 0.35; cursor: not-allowed; }
+[data-theme="dark"] .btn-auto { border-color: rgba(139,92,246,0.3); }
+[data-theme="dark"] .btn-auto:hover { background: rgba(139,92,246,0.2); }
+
+.auto-result {
+  background: var(--purple-dim);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--purple);
+  margin-top: 10px;
+  display: none;
+  line-height: 1.7;
+}
+.auto-result.show { display: block; }
+.auto-result ul { margin: 6px 0 0 16px; }
+[data-theme="dark"] .auto-result { color: #c4b5fd; border-color: rgba(139,92,246,0.25); }
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════════════ */
+.btn {
+  width: 100%;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  letter-spacing: -0.1px;
+}
+
+.btn-green {
+  background: var(--success);
+  color: #fff;
+  margin-top: 1rem;
+  border-color: rgba(22,163,74,0.3);
+  box-shadow: 0 2px 10px rgba(22,163,74,0.2);
+}
+.btn-green:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 18px rgba(22,163,74,0.3);
+  transform: translateY(-1px);
+}
+.btn-green:disabled {
+  background: var(--bg-2);
+  color: var(--text-3);
+  cursor: not-allowed;
+  border-color: var(--border);
+  box-shadow: none;
+}
+[data-theme="dark"] .btn-green { background: #166534; border-color: rgba(34,197,94,0.3); }
+[data-theme="dark"] .btn-green:hover:not(:disabled) { background: #15803d; }
+
+.btn-blue {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(37,99,235,0.3);
+  box-shadow: 0 2px 10px rgba(37,99,235,0.2);
+}
+.btn-blue:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 18px rgba(37,99,235,0.3);
+  transform: translateY(-1px);
+}
+
+.btn-red {
+  background: var(--danger-dim);
+  color: var(--danger);
+  border-color: rgba(220,38,38,0.25);
+}
+.btn-red:hover { background: rgba(220,38,38,0.15); border-color: var(--danger); }
+
+.btn-outline {
+  background: var(--card);
+  color: var(--text-2);
+  border-color: var(--border);
+}
+.btn-outline:hover { background: var(--bg-2); color: var(--text); border-color: var(--border-2); }
+
+.btn-row { display: flex; gap: 8px; }
+
+/* ─── Primary CTA Run Button ─────────────────────────────────── */
+.btn-cta {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius);
+  border: 1px solid rgba(22,163,74,0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-family: inherit;
+  letter-spacing: -0.2px;
+  background: linear-gradient(135deg, #15803d, var(--success), #16a34a);
+  background-size: 200% 100%;
+  background-position: right;
+  color: #fff;
+  margin-top: 1rem;
+  box-shadow: 0 4px 18px rgba(22,163,74,0.22);
+}
+.btn-cta:hover:not(:disabled) {
+  background-position: left;
+  box-shadow: 0 6px 26px rgba(22,163,74,0.35);
+  transform: translateY(-1px);
+}
+.btn-cta:disabled {
+  background: var(--bg-2);
+  color: var(--text-3);
+  cursor: not-allowed;
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
+}
+[data-theme="dark"] .btn-cta { background: linear-gradient(135deg, #166534, #22C55E, #15803d); }
+
+/* ═══════════════════════════════════════════════════════════════
+   INTRUDER TOGGLE
+═══════════════════════════════════════════════════════════════ */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.toggle-row label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+}
+.toggle-label-text { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.toggle-label-sub  { font-size: 11px; color: var(--text-3); margin-left: auto; }
+
+/* Custom toggle switch */
+.toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--toggle-track);
+  border-radius: 99px;
+  cursor: pointer;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  left: 3px; top: 3px;
+  width: 14px; height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.toggle-switch input:checked ~ .toggle-track { background: var(--purple); }
+.toggle-switch input:checked ~ .toggle-track::after { transform: translateX(16px); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ZONE DRAWING
+═══════════════════════════════════════════════════════════════ */
+.zone-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.zone-wrap p.hint { font-size: 12px; color: var(--text-3); margin-bottom: 10px; line-height: 1.6; }
+#zoneCanvas {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  cursor: crosshair;
+  background: #000;
+  display: none;
+  border: 1px solid var(--border);
+}
+.zone-placeholder {
+  padding: 3rem 0;
+  text-align: center;
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.zone-placeholder svg { opacity: 0.3; }
+.zone-placeholder p { font-size: 13px; }
+.zone-controls { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.zone-controls .btn { width: auto; flex: 1; padding: 8px 12px; font-size: 12px; margin-top: 0; }
+.zone-list { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.zone-chip {
+  background: var(--accent-dim);
+  border: 1px solid rgba(37,99,235,0.2);
+  color: var(--accent);
+  border-radius: 99px;
+  padding: 4px 8px 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+[data-theme="dark"] .zone-chip { color: #93c5fd; border-color: rgba(59,130,246,0.25); }
+.zone-chip .x {
+  cursor: pointer;
+  color: var(--text-3);
+  font-weight: 700;
+  padding: 0 3px;
+  transition: color 0.15s;
+  font-size: 13px;
+  line-height: 1;
+}
+.zone-chip .x:hover { color: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROGRESS & LIVE PREVIEW
+═══════════════════════════════════════════════════════════════ */
+.progress-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-top: 1rem;
+  display: none;
+  box-shadow: var(--shadow);
+}
+.progress-box.show { display: block; }
+.prog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.prog-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.fps-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.fps-badge.live {
+  border-color: rgba(22,163,74,0.4);
+  color: var(--success);
+  background: var(--success-dim);
+}
+[data-theme="dark"] .fps-badge.live { border-color: rgba(34,197,94,0.4); }
+.prog-sub { font-size: 11px; color: var(--text-3); }
+.pw {
+  background: var(--progress-track);
+  border-radius: 99px;
+  height: 5px;
+  margin: 10px 0;
+  overflow: hidden;
+}
+.pb {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success), var(--success-bright));
+  border-radius: 99px;
+  width: 0%;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─── Live preview canvas area ───────────────────────────────── */
+.live-preview-box {
+  background: #0a0a0a;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 14px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+.live-preview-box canvas { max-width: 100%; display: block; }
+.lp-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--canvas-overlay);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+}
+.lp-alert {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--danger);
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  display: none;
+  animation: pulse 1s ease-in-out infinite;
+  letter-spacing: 0.01em;
+}
+.lp-idle {
+  font-size: 13px;
+  color: var(--text-3);
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.lp-idle svg { opacity: 0.3; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.8;transform:scale(1.04)} }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESULTS
+═══════════════════════════════════════════════════════════════ */
+.result-box { margin-top: 1.25rem; display: none; }
+.result-box.show { display: block; }
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--success);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+.stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat:hover { border-color: var(--border-2); }
+[data-theme="dark"] .stat:hover { border-color: rgba(59,130,246,0.3); }
+.stat .num {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+.stat .lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.vbox {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.vbox .vtitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 8px 12px 6px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+}
+.vbox.hl { border-color: rgba(22,163,74,0.35); }
+.vbox .vtitle.hl { color: var(--success); }
+.vbox video { width: 100%; display: block; background: #000; max-height: 240px; object-fit: contain; }
+[data-theme="dark"] .vbox.hl { border-color: rgba(34,197,94,0.4); }
+.zone-stats { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.zone-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  color: var(--text-2);
+}
+.zone-stat-row b { color: var(--warning); font-weight: 700; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ERROR / WARN BOXES
+═══════════════════════════════════════════════════════════════ */
+.err {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: var(--danger-dim);
+  border: 1px solid rgba(220,38,38,0.25);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--danger);
+  margin-top: 1rem;
+  font-weight: 500;
+}
+.err.show { display: flex; }
+[data-theme="dark"] .err { border-color: rgba(239,68,68,0.3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   WEBCAM TAB
+═══════════════════════════════════════════════════════════════ */
+.webcam-container {
+  background: #0a0a0a;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: var(--shadow);
+}
+.webcam-container img { width: 100%; height: 100%; object-fit: cover; display: none; }
+.wc-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.wc-placeholder svg { opacity: 0.25; }
+.wc-status {
+  position: absolute;
+  top: 12px; left: 12px;
+  background: var(--canvas-overlay);
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+  display: none;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(22,163,74,0.3);
+  letter-spacing: 0.05em;
+}
+[data-theme="dark"] .wc-status { border-color: rgba(34,197,94,0.3); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ENROLL TAB
+═══════════════════════════════════════════════════════════════ */
+.table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: 10px;
+  box-shadow: var(--shadow);
+}
+table { width: 100%; border-collapse: collapse; }
+thead { background: var(--bg-2); }
+th {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+td {
+  padding: 11px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background-color 0.15s ease; }
+tbody tr:hover { background: var(--bg-2); }
+
+.badge-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--success-dim);
+  color: var(--success);
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(22,163,74,0.2);
+}
+.badge-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--danger-dim);
+  color: var(--danger);
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(220,38,38,0.2);
+}
+[data-theme="dark"] .badge-auth { border-color: rgba(34,197,94,0.25); }
+[data-theme="dark"] .badge-block { border-color: rgba(239,68,68,0.25); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ALERTS TAB
+═══════════════════════════════════════════════════════════════ */
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  animation: slideIn 0.25s ease;
+  position: relative;
+}
+.alert-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--danger);
+  border-radius: 0 2px 2px 0;
+}
+.alert-row:hover { background: var(--bg-2); }
+@keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+.alert-body { flex: 1; min-width: 0; }
+.alert-name          { font-weight: 700; color: var(--danger);  font-size: 13px; }
+.alert-name-zone     { font-weight: 700; color: var(--warning); font-size: 13px; }
+.alert-name-intruder { font-weight: 700; color: var(--purple);  font-size: 13px; }
+.alert-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+[data-theme="dark"] .alert-name          { color: #fca5a5; }
+[data-theme="dark"] .alert-name-intruder { color: #c4b5fd; }
+
+/* ═══════════════════════════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════════════════════════ */
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--text-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .topbar { padding: 0 1rem; }
+  .topbar-status { display: none; }
+  .main-content { padding: 1rem; }
+  .config-grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2,1fr); }
+  .video-grid { grid-template-columns: 1fr; }
+  .btn-row { flex-direction: column; }
+  .tab { padding: 10px 12px; font-size: 12px; }
+  .page-header h1 { font-size: 20px; }
+  .upload-zone { padding: 2rem 1rem; }
+  .toggle-label-sub { display: none; }
+}
+@media (max-width: 420px) {
+  .topbar-name span { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ═══════════════ TOP NAV BAR ═══════════════ -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="topbar-name">SentinelAI <span>/ Security Platform</span></div>
+    </div>
+
+    <div class="topbar-right">
+      <!-- Theme toggle — Sun=go light / Moon=go dark -->
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle light / dark mode">
+        <!-- Sun icon — visible in dark mode -->
+        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <!-- Moon icon — visible in light mode -->
+        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+
+      <!-- Server status pill -->
+      <div class="topbar-status">
+        <div class="status-pill">
+          <div class="sdot" id="sDot"></div>
+          <span id="sLabel">Checking…</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <main class="main-content">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <h1>
+        Security Platform
+        <span class="badge">⚡ YOLOv11m + InsightFace</span>
+      </h1>
+      <p class="sub">Human Detection · Face Recognition · Restricted Entry Alerts · Intruder Detection · Live Processing Preview</p>
+    </div>
+
+    <!-- Warning bars — IDs and classes preserved -->
+    <div class="warn-bar" id="codecWarn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      ffmpeg not found — annotated video may not play in browser (download still works).
+    </div>
+    <div class="warn-bar" id="faceWarn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      InsightFace model not ready — face recognition disabled. Ensure internet access on first server start.
+    </div>
+
+    <!-- ═══════════════ TAB NAV ═══════════════ -->
+    <div class="tabs">
+      <div class="tab active" id="tabBtn0" onclick="switchTab(0)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        Video
+      </div>
+      <div class="tab" id="tabBtn1" onclick="switchTab(1)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Webcam
+      </div>
+      <div class="tab" id="tabBtn2" onclick="switchTab(2)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Enroll
+      </div>
+      <div class="tab" id="tabBtn3" onclick="switchTab(3)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Alerts
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 1: VIDEO
+    ════════════════════════════════════════════════════ -->
+    <div id="tab0" class="tab-content active">
+
+      <p class="slabel">1 · Upload Video</p>
+
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="video/*">
+        <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        <p>Drop your video here or click to browse</p>
+        <span>MP4 · AVI · MOV · MKV — any resolution</span>
+      </div>
+
+      <div class="file-info" id="fileInfo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <span id="fileName"></span>
+        <span id="fileSize" style="color:var(--text-3);margin-left:2px"></span>
+      </div>
+
+      <div class="chips" id="vChips" style="display:none">
+        <div class="chip" id="resChip"></div>
+        <div class="chip" id="durChip"></div>
+        <div class="chip" id="frmChip"></div>
+      </div>
+
+      <!-- Configure + Auto-calibrate -->
+      <div class="section-head">
+        <p class="slabel" style="margin:0">2 · Configure Detection</p>
+        <button class="btn-auto" id="autoBtn" disabled onclick="autoCalibrate()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Auto-detect settings
+        </button>
+      </div>
+
+      <div class="auto-result" id="autoResult"></div>
+
+      <div class="config-grid">
+        <div class="cc">
+          <label>Confidence Threshold</label>
+          <div class="val" id="confVal">0.40</div>
+          <input type="range" min="10" max="90" value="40" step="1" id="confSlider">
+          <div class="hint">Higher = fewer, more certain detections</div>
+        </div>
+        <div class="cc">
+          <label>IoU (NMS) Threshold</label>
+          <div class="val" id="iouVal">0.45</div>
+          <input type="range" min="10" max="90" value="45" step="1" id="iouSlider">
+          <div class="hint">Lower = fewer overlapping boxes</div>
+        </div>
+        <div class="cc">
+          <label>Box Thickness</label>
+          <div class="val" id="thickVal">2 px</div>
+          <input type="range" min="1" max="6" value="2" step="1" id="thickSlider">
+        </div>
+        <div class="cc">
+          <label>Label Font Size</label>
+          <div class="val" id="fontVal">16 px</div>
+          <input type="range" min="10" max="28" value="16" step="2" id="fontSlider">
+        </div>
+      </div>
+
+      <!-- Zones -->
+      <p class="slabel">3 · Restricted Zones <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0">(optional)</span></p>
+      <div class="zone-wrap">
+        <p class="hint">Click on the frame to drop points (min 3). Click the first point again (or press "Finish") to close the zone. Drag any dot to adjust. Persons whose feet land inside a zone are highlighted separately.</p>
+        <div class="zone-placeholder" id="zonePlaceholder">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          <p>Upload a video above to draw zones on it</p>
+        </div>
+        <canvas id="zoneCanvas"></canvas>
+        <div class="zone-controls" id="zoneControls" style="display:none">
+          <button class="btn btn-outline" onclick="undoZonePoint()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+            Undo point
+          </button>
+          <button class="btn btn-blue" onclick="finishZone()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Finish zone
+          </button>
+          <button class="btn btn-outline" onclick="clearZones()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Clear all
+          </button>
+        </div>
+        <div class="zone-list" id="zoneList"></div>
+      </div>
+
+      <!-- Run section -->
+      <p class="slabel">4 · Run Detection</p>
+
+      <div class="toggle-row">
+        <label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="intruderToggle" checked>
+            <div class="toggle-track"></div>
+          </div>
+          <div>
+            <div class="toggle-label-text">👤 Intruder Detection</div>
+          </div>
+        </label>
+        <span class="toggle-label-sub">Alert when unknown person is detected</span>
+      </div>
+
+      <button class="btn-cta" id="runBtn" disabled onclick="startProcessing()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Run YOLOv11m Detection — Live Preview
+      </button>
+
+      <!-- Error box -->
+      <div class="err" id="errBox">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+
+      <!-- Progress + live preview -->
+      <div class="progress-box" id="progBox">
+        <div class="prog-header">
+          <div class="prog-title" id="progTitle">Processing…</div>
+          <div class="fps-badge" id="fpsBadge">— fps</div>
+        </div>
+        <div class="prog-sub" id="progSub">Uploading…</div>
+        <div class="pw"><div class="pb" id="pb"></div></div>
+
+        <div class="live-preview-box" id="liveBox">
+          <div class="lp-idle" id="lpIdle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Waiting for first annotated frame…
+          </div>
+          <canvas id="liveCanvas" style="display:none"></canvas>
+          <div class="lp-overlay" id="lpOverlay" style="display:none"></div>
+          <div class="lp-alert" id="lpAlert">🚨 BLOCKLIST DETECTED</div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="result-box" id="resultBox">
+        <div class="result-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Processing complete
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num" id="rFrames">—</div><div class="lbl">Frames</div></div>
+          <div class="stat"><div class="num" id="rDet">—</div><div class="lbl">Detections</div></div>
+          <div class="stat"><div class="num" id="rPeak">—</div><div class="lbl">Peak</div></div>
+          <div class="stat"><div class="num" id="rCoords">—</div><div class="lbl">CSV Rows</div></div>
+        </div>
+        <div class="zone-stats" id="zoneStats"></div>
+        <div class="video-grid">
+          <div class="vbox"><div class="vtitle">📹 Original</div><video id="origVid" controls></video></div>
+          <div class="vbox hl"><div class="vtitle hl">🟢 Annotated Output</div><video id="outVid" controls></video></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green" style="flex:1;margin-top:0" onclick="dlVideo()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Video
+          </button>
+          <button class="btn btn-blue" style="flex:1" onclick="dlCSV()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Download CSV
+          </button>
+          <button class="btn btn-outline" style="flex:0 0 auto;padding:10px 16px;margin-top:0" onclick="resetApp()" title="New video">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+          </button>
+        </div>
+      </div>
+    </div><!-- /tab0 -->
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 2: WEBCAM
+    ════════════════════════════════════════════════════ -->
+    <div id="tab1" class="tab-content">
+      <p class="slabel">Live Camera Feed with Detection Overlay</p>
+
+      <div class="cc" style="margin-bottom:10px">
+        <label>Camera Source</label>
+        <select id="wcSource" onchange="onSourceChange()">
+          <option value="0">💻 This computer's webcam</option>
+          <option value="1">💻 Second local camera (index 1)</option>
+          <option value="url">📱 Phone — IP camera app (no HTTPS needed)</option>
+          <option value="push">📱 Phone — browser camera page</option>
+        </select>
+      </div>
+
+      <div class="cc" id="wcUrlBox" style="display:none;margin-bottom:10px">
+        <label>Stream URL from the phone app</label>
+        <input type="text" id="wcUrl" placeholder="http://192.168.1.42:8080/video">
+        <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.7">
+          Install <b>IP Webcam</b> (Android) or <b>DroidCam</b> on the phone, start its server, and paste the URL it displays. Both devices must be on the same Wi-Fi.<br>
+          IP Webcam → <code>http://PHONE_IP:8080/video</code> ·
+          DroidCam → <code>http://PHONE_IP:4747/video</code> ·
+          RTSP also works.
+        </div>
+      </div>
+
+      <div class="cc" id="wcPushBox" style="display:none;margin-bottom:10px">
+        <label>Open this page on the phone</label>
+        <div id="wcPhoneUrls" style="font-size:12px;color:var(--accent);line-height:2">Loading…</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.7">
+          Tap <b>Start streaming</b> on the phone, then start the camera here.<br>
+          ⚠️ Browsers only allow camera access over HTTPS — run the server with
+          <code>python app.py --https</code> for this option.
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:12px">
+        <button class="btn btn-outline" id="btnWcTest" onclick="testSource()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Test connection
+        </button>
+      </div>
+
+      <div class="webcam-container" id="wcContainer">
+        <div class="wc-placeholder" id="wcPlaceholder">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Camera offline
+        </div>
+        <img id="wcImg" alt="Live Feed">
+        <div class="wc-status" id="wcStatus">● LIVE</div>
+      </div>
+
+      <div style="font-size:12px;color:var(--danger);margin-top:8px" id="wcErr"></div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:4px" id="wcStats"></div>
+
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-blue" id="btnWcStart" onclick="startWebcam()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Start Camera
+        </button>
+        <button class="btn btn-outline" id="btnWcStop" onclick="stopWebcam()" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+          Stop
+        </button>
+      </div>
+    </div><!-- /tab1 -->
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 3: ENROLL
+    ════════════════════════════════════════════════════ -->
+    <div id="tab2" class="tab-content">
+      <p class="slabel">Add New Person</p>
+
+      <div class="card">
+        <div class="config-grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="cc" style="border:none;padding:0;box-shadow:none">
+            <label>Full Name</label>
+            <input type="text" id="enrName" placeholder="e.g. John Doe" style="margin-top:6px">
+          </div>
+          <div class="cc" style="border:none;padding:0;box-shadow:none">
+            <label>Status</label>
+            <select id="enrStatus" style="margin-top:6px">
+              <option value="authorized">✅ Authorized</option>
+              <option value="blocklisted">🚫 Blocklisted</option>
+            </select>
+          </div>
+          <div class="cc" style="border:none;padding:0;box-shadow:none">
+            <label>Photo (clear face shot)</label>
+            <input type="file" id="enrPhoto" accept="image/*" style="margin-top:10px;font-size:12px;color:var(--text-2);width:100%">
+          </div>
+        </div>
+        <button class="btn btn-blue" style="margin-top:14px" onclick="enrollPerson()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Enroll Person
+        </button>
+        <div id="enrMsg" style="margin-top:10px;font-size:13px;color:var(--success);min-height:20px;font-weight:500"></div>
+      </div>
+
+      <p class="slabel">Enrolled Persons</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="peopleTable">
+            <tr><td colspan="4" style="color:var(--text-3);padding:24px;text-align:center">No persons enrolled yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /tab2 -->
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 4: ALERTS
+    ════════════════════════════════════════════════════ -->
+    <div id="tab3" class="tab-content">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:1rem">
+        <div>
+          <div style="font-size:18px;font-weight:700;letter-spacing:-0.3px;color:var(--text)">Alert Feed</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:3px">Blocklisted persons detected in real-time via SSE</div>
+        </div>
+        <button class="btn btn-outline" style="width:auto;padding:7px 16px;font-size:12px;flex-shrink:0" onclick="clearAlerts()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Clear all
+        </button>
+      </div>
+      <div id="alertsFeed" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;min-height:140px;box-shadow:var(--shadow)">
+        <div style="padding:3rem;text-align:center;color:var(--text-3);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:10px" id="alertEmpty">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          No alerts yet — system is monitoring
+        </div>
+      </div>
+    </div><!-- /tab3 -->
+
+  </main>
+</div><!-- /app-shell -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// THEME SYSTEM
+// ═══════════════════════════════════════════════════════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+}
+// Theme icon state is handled entirely by CSS [data-theme="dark"] selectors.
+// No JS needed for icon visibility — it's pure CSS.
+
+// ═══════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════
+const BASE = window.location.origin;
+let selFile = null, origURL = null, jobId = null, resBlob = null, busy = false;
+
+// ── Sliders ────────────────────────────────────────────────────────────────
+document.getElementById('confSlider').oninput = e => document.getElementById('confVal').textContent = (e.target.value/100).toFixed(2);
+document.getElementById('iouSlider').oninput  = e => document.getElementById('iouVal').textContent  = (e.target.value/100).toFixed(2);
+document.getElementById('thickSlider').oninput= e => document.getElementById('thickVal').textContent= e.target.value+' px';
+document.getElementById('fontSlider').oninput = e => document.getElementById('fontVal').textContent = e.target.value+' px';
+
+// ── Server health ───────────────────────────────────────────────────────────
+async function checkServer() {
+  if (busy) return;
+  const dot = document.getElementById('sDot'), lbl = document.getElementById('sLabel');
+  try {
+    const r = await fetch(BASE+'/health', {signal: AbortSignal.timeout(3000)});
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    dot.className = 'sdot on';
+    lbl.textContent = `Server online · CUDA: ${d.cuda?'✅ GPU':'⚠️ CPU'} · ffmpeg: ${d.ffmpeg?'✅':'❌'} · face model: ${d.insightface?'✅':'❌'}`;
+    document.getElementById('codecWarn').style.display = d.ffmpeg ? 'none' : 'block';
+    document.getElementById('faceWarn').style.display  = d.insightface ? 'none' : 'block';
+  } catch {
+    dot.className = 'sdot off';
+    lbl.textContent = 'Server offline — run: python app.py in your terminal';
+  }
+}
+checkServer();
+setInterval(checkServer, 10000);
+
+// ── Tab switching ───────────────────────────────────────────────────────────
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('active', i===idx));
+  if (idx === 2) loadPeople();
+  if (idx === 3) loadAlerts();
+}
+
+// ── File upload / drag-drop ─────────────────────────────────────────────────
+const dz = document.getElementById('dropZone'), fi = document.getElementById('fileInput');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change', () => { if (fi.files[0]) handleFile(fi.files[0]); });
+
+function handleFile(f) {
+  selFile = f;
+  origURL = URL.createObjectURL(f);
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileSize').textContent = ' (' + (f.size/1048576).toFixed(1) + ' MB)';
+  document.getElementById('fileInfo').classList.add('show');
+  clearZones();
+  document.getElementById('autoResult').classList.remove('show');
+
+  const v = document.createElement('video');
+  v.src = origURL; v.muted = true;
+  v.onloadedmetadata = () => {
+    document.getElementById('resChip').textContent = '🖥 ' + v.videoWidth + '×' + v.videoHeight;
+    const d = Math.round(v.duration);
+    document.getElementById('durChip').textContent = '⏱ ' + Math.floor(d/60) + ':' + String(d%60).padStart(2,'0');
+    document.getElementById('frmChip').textContent = '🎞 ~' + Math.round(v.duration * (v.videoWidth > 1280 ? 25 : 30)) + ' frames';
+    document.getElementById('vChips').style.display = 'flex';
+    v.currentTime = Math.min(v.duration * 0.3, v.duration - 0.1);
+  };
+  v.onseeked = () => {
+    const off = document.createElement('canvas');
+    off.width = v.videoWidth; off.height = v.videoHeight;
+    off.getContext('2d').drawImage(v, 0, 0, off.width, off.height);
+    const img = new Image();
+    img.onload = () => {
+      bgImage = img;
+      const wrapW = document.querySelector('.zone-wrap').clientWidth - 24;
+      const scale = Math.min(wrapW / img.width, 1);
+      zoneCanvas.width  = img.width  * scale;
+      zoneCanvas.height = img.height * scale;
+      zoneCanvas.style.display = 'block';
+      document.getElementById('zonePlaceholder').style.display = 'none';
+      document.getElementById('zoneControls').style.display = 'flex';
+      redrawZoneCanvas();
+    };
+    img.src = off.toDataURL('image/jpeg', 0.85);
+  };
+  document.getElementById('runBtn').disabled  = false;
+  document.getElementById('autoBtn').disabled = false;
+  document.getElementById('errBox').classList.remove('show');
+}
+
+// ── Zone drawing ────────────────────────────────────────────────────────────
+let zones = [], currentPoints = [], bgImage = null, draggingPoint = null;
+const DRAG_RADIUS = 10;
+const zoneCanvas = document.getElementById('zoneCanvas');
+const zctx = zoneCanvas.getContext('2d');
+
+function redrawZoneCanvas() {
+  if (!bgImage) return;
+  zctx.clearRect(0, 0, zoneCanvas.width, zoneCanvas.height);
+  zctx.drawImage(bgImage, 0, 0, zoneCanvas.width, zoneCanvas.height);
+  const toPx = p => [p[0] * zoneCanvas.width, p[1] * zoneCanvas.height];
+
+  zones.forEach(z => {
+    if (!z.points.length) return;
+    zctx.beginPath();
+    z.points.forEach((p, i) => { const [x,y] = toPx(p); i===0 ? zctx.moveTo(x,y) : zctx.lineTo(x,y); });
+    zctx.closePath();
+    zctx.strokeStyle = '#00dcff'; zctx.lineWidth = 2; zctx.stroke();
+    zctx.fillStyle = 'rgba(0,220,255,0.10)'; zctx.fill();
+    const [lx, ly] = toPx(z.points[0]);
+    zctx.fillStyle = '#00dcff'; zctx.font = 'bold 13px system-ui'; zctx.fillText(z.name, lx + 6, ly - 8);
+    z.points.forEach(p => {
+      const [x, y] = toPx(p);
+      zctx.beginPath(); zctx.arc(x, y, 5, 0, Math.PI*2);
+      zctx.fillStyle = '#00dcff'; zctx.fill();
+      zctx.strokeStyle = '#fff'; zctx.lineWidth = 1.5; zctx.stroke();
+    });
+  });
+
+  if (currentPoints.length) {
+    zctx.beginPath();
+    currentPoints.forEach((p, i) => { const [x,y] = toPx(p); i===0 ? zctx.moveTo(x,y) : zctx.lineTo(x,y); });
+    if (currentPoints.length >= 3) {
+      zctx.closePath();
+      zctx.fillStyle = 'rgba(74,222,128,0.10)'; zctx.fill();
+    }
+    zctx.strokeStyle = '#4ade80'; zctx.lineWidth = 2; zctx.stroke();
+    currentPoints.forEach((p, idx) => {
+      const [x, y] = toPx(p);
+      zctx.beginPath(); zctx.arc(x, y, idx===0 && currentPoints.length>=3 ? 7 : 5, 0, Math.PI*2);
+      zctx.fillStyle = idx===0 && currentPoints.length>=3 ? '#facc15' : '#4ade80'; zctx.fill();
+      zctx.strokeStyle = '#fff'; zctx.lineWidth = 1.5; zctx.stroke();
+    });
+  }
+}
+
+function getPointNear(xPx, yPx) {
+  const toPx = p => [p[0]*zoneCanvas.width, p[1]*zoneCanvas.height];
+  for (let i = 0; i < currentPoints.length; i++) {
+    const [px,py] = toPx(currentPoints[i]);
+    if (Math.hypot(px-xPx, py-yPx) <= DRAG_RADIUS) return { zIdx:-1, pIdx:i };
+  }
+  for (let z = 0; z < zones.length; z++) {
+    for (let i = 0; i < zones[z].points.length; i++) {
+      const [px,py] = toPx(zones[z].points[i]);
+      if (Math.hypot(px-xPx, py-yPx) <= DRAG_RADIUS) return { zIdx:z, pIdx:i };
+    }
+  }
+  return null;
+}
+
+zoneCanvas.addEventListener('mousedown', e => {
+  if (!bgImage) return;
+  const rect = zoneCanvas.getBoundingClientRect();
+  const xPx = e.clientX - rect.left;
+  const yPx = e.clientY - rect.top;
+  const near = getPointNear(xPx, yPx);
+  if (near) {
+    if (near.zIdx === -1 && near.pIdx === 0 && currentPoints.length >= 3) { finishZone(); return; }
+    draggingPoint = near;
+  } else {
+    currentPoints.push([xPx/rect.width, yPx/rect.height]);
+    redrawZoneCanvas();
+  }
+});
+zoneCanvas.addEventListener('mousemove', e => {
+  if (!bgImage) return;
+  const rect = zoneCanvas.getBoundingClientRect();
+  const xPx = e.clientX - rect.left, yPx = e.clientY - rect.top;
+  if (!draggingPoint) {
+    zoneCanvas.style.cursor = getPointNear(xPx,yPx) ? 'move' : 'crosshair';
+  } else {
+    const x = Math.max(0, Math.min(1, xPx/rect.width));
+    const y = Math.max(0, Math.min(1, yPx/rect.height));
+    if (draggingPoint.zIdx === -1) currentPoints[draggingPoint.pIdx] = [x,y];
+    else zones[draggingPoint.zIdx].points[draggingPoint.pIdx] = [x,y];
+    redrawZoneCanvas();
+  }
+});
+zoneCanvas.addEventListener('mouseup',    () => draggingPoint = null);
+zoneCanvas.addEventListener('mouseleave', () => draggingPoint = null);
+
+function undoZonePoint() { currentPoints.pop(); redrawZoneCanvas(); }
+function finishZone() {
+  if (currentPoints.length < 3) { alert('Add at least 3 points before finishing a zone.'); return; }
+  const name = prompt('Name this zone:', 'Zone ' + (zones.length+1)) || ('Zone ' + (zones.length+1));
+  zones.push({ name, points: currentPoints.slice() });
+  currentPoints = [];
+  redrawZoneCanvas();
+  renderZoneList();
+}
+function removeZone(i) { zones.splice(i,1); redrawZoneCanvas(); renderZoneList(); }
+function clearZones() { zones = []; currentPoints = []; redrawZoneCanvas(); renderZoneList(); }
+function renderZoneList() {
+  const el = document.getElementById('zoneList');
+  el.innerHTML = zones.map((z,i) => `<div class="zone-chip">${z.name}<span class="x" onclick="removeZone(${i})">✕</span></div>`).join('');
+}
+
+// ── Auto-calibrate ──────────────────────────────────────────────────────────
+async function autoCalibrate() {
+  if (!selFile) return;
+  const btn = document.getElementById('autoBtn'), rb = document.getElementById('autoResult');
+  busy = true; btn.disabled = true; btn.textContent = '⏳ Analyzing…';
+  rb.innerHTML = '<span style="color:var(--text-3)">Sampling frames — this takes a few seconds on CPU…</span>';
+  rb.classList.add('show');
+  try {
+    const fd = new FormData(); fd.append('video', selFile);
+    const res = await fetch(BASE+'/auto_calibrate', {method:'POST', body:fd});
+    if (!res.ok) throw new Error('Server error ' + res.status);
+    const d = await res.json();
+    document.getElementById('confSlider').value = Math.round(d.recommended_conf*100);
+    document.getElementById('confVal').textContent = d.recommended_conf.toFixed(2);
+    document.getElementById('iouSlider').value  = Math.round(d.recommended_iou*100);
+    document.getElementById('iouVal').textContent  = d.recommended_iou.toFixed(2);
+    rb.innerHTML = `<b>Recommended: conf ${d.recommended_conf.toFixed(2)}, IoU ${d.recommended_iou.toFixed(2)}</b><br>
+      <i style="color:var(--text-3)">Based on: ${d.details.avg_persons_per_frame} avg persons/frame · brightness ${d.details.avg_brightness.toFixed(0)}/255 · ${d.details.sampled_frames} sampled frames</i>
+      <ul>${d.reasoning.map(r=>`<li>${r}</li>`).join('')}</ul>
+      <div style="margin-top:4px;color:var(--text-3)">Sliders updated — feel free to fine-tune.</div>`;
+  } catch(err) {
+    rb.innerHTML = `<b style="color:var(--danger)">Auto-detect failed:</b> ${err.message}`;
+  } finally {
+    busy = false; btn.disabled = false; btn.textContent = '✨ Auto-detect settings';
+  }
+}
+
+// ── Processing flow (SSE live preview) ─────────────────────────────────────
+let eventSource = null, statusInterval = null;
+const liveCanvas = document.getElementById('liveCanvas');
+const lctx = liveCanvas.getContext('2d');
+let pendingFrame = null;
+
+function renderLoop() {
+  if (pendingFrame !== null) {
+    const src = pendingFrame; pendingFrame = null;
+    const img = new Image();
+    img.onload = () => {
+      liveCanvas.width  = img.naturalWidth;
+      liveCanvas.height = img.naturalHeight;
+      lctx.drawImage(img, 0, 0);
+    };
+    img.src = 'data:image/jpeg;base64,' + src;
+  }
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
+
+async function startProcessing() {
+  if (!selFile) return;
+  busy = true;
+  document.getElementById('errBox').classList.remove('show');
+  document.getElementById('resultBox').classList.remove('show');
+  document.getElementById('progBox').classList.add('show');
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('progTitle').textContent = 'Uploading video…';
+  document.getElementById('pb').style.width = '0%';
+
+  liveCanvas.style.display = 'none';
+  document.getElementById('lpIdle').style.display = 'block';
+  document.getElementById('lpOverlay').style.display = 'none';
+
+  const fd = new FormData();
+  fd.append('video', selFile);
+  fd.append('conf',       document.getElementById('confSlider').value/100);
+  fd.append('iou',        document.getElementById('iouSlider').value/100);
+  fd.append('thickness',  document.getElementById('thickSlider').value);
+  fd.append('font_size',  document.getElementById('fontSlider').value);
+  fd.append('zones', JSON.stringify(zones));
+  fd.append('intruder_detection', document.getElementById('intruderToggle').checked ? '1' : '0');
+
+  try {
+    const res = await fetch(BASE+'/process/start', {method:'POST', body:fd});
+    if (!res.ok) throw new Error('Server error ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    jobId = data.job_id;
+
+    eventSource = new EventSource(`${BASE}/process/stream/${jobId}`);
+
+    eventSource.addEventListener('frame', e => {
+      if (liveCanvas.style.display === 'none') {
+        document.getElementById('lpIdle').style.display = 'none';
+        liveCanvas.style.display = 'block';
+        document.getElementById('lpOverlay').style.display = 'block';
+      }
+      pendingFrame = e.data;
+    });
+
+    eventSource.addEventListener('stats', e => {
+      const s = JSON.parse(e.data);
+      const pct = s.total ? Math.round(s.frame/s.total*100) : 0;
+      document.getElementById('pb').style.width = pct + '%';
+      document.getElementById('progTitle').textContent = `Processing… ${pct}%`;
+      document.getElementById('lpOverlay').textContent =
+        `Frame ${s.frame}/${s.total} · Persons: ${s.count}` +
+        (s.zones && Object.keys(s.zones).length ? ' · ' + Object.entries(s.zones).map(([k,v])=>`${k}:${v}`).join(' ') : '');
+      if (s.fps) {
+        const badge = document.getElementById('fpsBadge');
+        badge.textContent = s.fps + ' fps';
+        badge.className = 'fps-badge' + (s.fps >= 5 ? ' live' : '');
+      }
+    });
+
+    eventSource.onerror = () => { if (eventSource) eventSource.close(); };
+
+    statusInterval = setInterval(async () => {
+      try {
+        const sr = await fetch(`${BASE}/process/status/${jobId}`);
+        const status = await sr.json();
+        if (status.encoding) {
+          document.getElementById('progTitle').textContent = '🔄 Re-encoding to H264…';
+          document.getElementById('pb').style.width = '95%';
+        }
+        if (status.done) {
+          clearInterval(statusInterval); statusInterval = null;
+          if (eventSource) { eventSource.close(); eventSource = null; }
+          await finishJob();
+        }
+      } catch(e) { /* ignore transient errors */ }
+    }, 1000);
+
+  } catch(err) {
+    showErr(err.message);
+  }
+}
+
+async function finishJob() {
+  document.getElementById('progTitle').textContent = '✅ Done!';
+  document.getElementById('pb').style.width = '100%';
+  try {
+    const res = await fetch(`${BASE}/process/result/${jobId}`);
+    if (!res.ok) throw new Error('Result fetch failed');
+    const blob = await res.blob();
+    resBlob = blob;
+
+    const statsStr = res.headers.get('X-Stats');
+    if (statsStr) {
+      const s = JSON.parse(statsStr);
+      document.getElementById('rFrames').textContent = s.frames || '—';
+      document.getElementById('rDet').textContent    = s.total_detections || '—';
+      document.getElementById('rPeak').textContent   = s.peak_per_frame || '—';
+      document.getElementById('rCoords').textContent = s.coords_rows || '—';
+      const zsEl = document.getElementById('zoneStats'); zsEl.innerHTML = '';
+      (s.zones||[]).forEach(z => {
+        const row = document.createElement('div'); row.className = 'zone-stat-row';
+        row.innerHTML = `<span>📍 ${z.name}</span><span>peak <b>${z.peak}</b> · occupied <b>${z.total_frames_occupied}</b> frames</span>`;
+        zsEl.appendChild(row);
+      });
+    }
+
+    document.getElementById('origVid').src = origURL;
+    document.getElementById('outVid').src  = URL.createObjectURL(blob);
+    document.getElementById('progBox').classList.remove('show');
+    document.getElementById('resultBox').classList.add('show');
+  } catch(err) {
+    showErr('Error loading final result: ' + err.message);
+  }
+  busy = false;
+  document.getElementById('runBtn').disabled = false;
+}
+
+function showErr(msg) {
+  if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
+  if (eventSource)    { eventSource.close(); eventSource = null; }
+  document.getElementById('errBox').textContent = '❌ ' + msg;
+  document.getElementById('errBox').classList.add('show');
+  document.getElementById('progBox').classList.remove('show');
+  document.getElementById('runBtn').disabled = false;
+  busy = false;
+}
+
+function dlVideo() {
+  if (!resBlob) return;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(resBlob);
+  a.download = 'detected_' + (selFile?.name||'output.mp4'); a.click();
+}
+function dlCSV() { if (jobId) window.open(`${BASE}/coords/${jobId}`, '_blank'); }
+function resetApp() {
+  if (eventSource)    { eventSource.close(); eventSource = null; }
+  if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
+  selFile=null; resBlob=null; origURL=null; jobId=null; busy=false;
+  document.getElementById('fileInfo').classList.remove('show');
+  document.getElementById('vChips').style.display = 'none';
+  document.getElementById('progBox').classList.remove('show');
+  document.getElementById('resultBox').classList.remove('show');
+  document.getElementById('errBox').classList.remove('show');
+  document.getElementById('autoResult').classList.remove('show');
+  document.getElementById('runBtn').disabled  = true;
+  document.getElementById('autoBtn').disabled = true;
+  document.getElementById('pb').style.width   = '0%';
+  bgImage = null;
+  zoneCanvas.style.display = 'none';
+  document.getElementById('zoneControls').style.display = 'none';
+  document.getElementById('zonePlaceholder').style.display = 'block';
+  clearZones(); fi.value = '';
+  liveCanvas.style.display = 'none';
+  document.getElementById('lpIdle').style.display = 'block';
+}
+
+// ── Webcam ──────────────────────────────────────────────────────────────────
+let wcStatsTimer = null;
+
+function currentSource() {
+  const sel = document.getElementById('wcSource').value;
+  if (sel === 'url')  return document.getElementById('wcUrl').value.trim();
+  if (sel === 'push') return 'push';
+  return sel;
+}
+
+function onSourceChange() {
+  const sel = document.getElementById('wcSource').value;
+  document.getElementById('wcUrlBox').style.display  = (sel === 'url')  ? 'block' : 'none';
+  document.getElementById('wcPushBox').style.display = (sel === 'push') ? 'block' : 'none';
+  document.getElementById('wcErr').textContent = '';
+  if (sel === 'push') loadPhoneUrls();
+}
+
+async function loadPhoneUrls() {
+  const box = document.getElementById('wcPhoneUrls');
+  try {
+    const r = await fetch(`${BASE}/camera/hosts`);
+    const d = await r.json();
+    if (!d.phone_urls || !d.phone_urls.length) {
+      box.textContent = 'Could not detect a LAN address — check the machine is on Wi-Fi.';
+      return;
+    }
+    box.innerHTML = d.phone_urls.map(u => `<div>${u}</div>`).join('') +
+      (d.secure ? '' : '<div style="color:var(--warning);margin-top:4px">Server is on http:// — the phone camera will be blocked. Restart with --https.</div>');
+  } catch (e) {
+    box.textContent = 'Could not reach the server.';
+  }
+}
+
+async function testSource() {
+  const src = currentSource();
+  const err = document.getElementById('wcErr');
+  if (!src) { err.textContent = '❌ Enter a stream URL first.'; return; }
+  err.style.color = 'var(--text-3)';
+  err.textContent = '⏳ Testing…';
+  try {
+    const fd = new FormData();
+    fd.append('source', src);
+    const r = await fetch(`${BASE}/camera/probe`, {method:'POST', body: fd});
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || 'Could not open source');
+    err.style.color = 'var(--success)';
+    err.textContent = d.kind === 'push'
+      ? '✅ Ready — now open the phone page and tap Start streaming.'
+      : `✅ Connected — ${d.width}×${d.height}`;
+  } catch (e) {
+    err.style.color = 'var(--danger)';
+    err.textContent = '❌ ' + e.message;
+  }
+}
+
+async function startWebcam() {
+  const err = document.getElementById('wcErr');
+  err.style.color = 'var(--text-3)';
+  err.textContent = '';
+  document.getElementById('btnWcStart').disabled = true;
+  document.getElementById('btnWcStart').textContent = '⏳ Starting…';
+  try {
+    const src = currentSource();
+    if (!src) throw new Error('Enter a stream URL first.');
+    const fd = new FormData();
+    fd.append('conf', document.getElementById('confSlider').value / 100);
+    fd.append('iou', document.getElementById('iouSlider').value / 100);
+    fd.append('thickness', document.getElementById('thickSlider').value);
+    fd.append('font_size', document.getElementById('fontSlider').value);
+    fd.append('zones', JSON.stringify(zones));
+    fd.append('intruder_detection', document.getElementById('intruderToggle').checked ? '1' : '0');
+    fd.append('source', src);
+    const r = await fetch(`${BASE}/webcam/start`, {method:'POST', body: fd});
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || 'Failed to start camera');
+    const img = document.getElementById('wcImg');
+    img.src = `${BASE}/webcam/stream?t=${Date.now()}`;
+    img.style.display = 'block';
+    document.getElementById('wcPlaceholder').style.display = 'none';
+    document.getElementById('wcStatus').style.display = 'block';
+    document.getElementById('btnWcStop').disabled = false;
+    document.getElementById('btnWcStart').textContent = '▶ Start Camera';
+    if (wcStatsTimer) clearInterval(wcStatsTimer);
+    wcStatsTimer = setInterval(pollWebcamStats, 1000);
+  } catch(err2) {
+    err.style.color = 'var(--danger)';
+    err.textContent = '❌ ' + err2.message;
+    document.getElementById('btnWcStart').disabled = false;
+    document.getElementById('btnWcStart').textContent = '▶ Start Camera';
+  }
+}
+
+async function pollWebcamStats() {
+  try {
+    const r = await fetch(`${BASE}/webcam/status`);
+    const d = await r.json();
+    if (!d.running) {
+      document.getElementById('wcStats').textContent = '';
+      if (d.error) {
+        const e = document.getElementById('wcErr');
+        e.style.color = 'var(--danger)';
+        e.textContent = '❌ ' + d.error;
+      }
+      stopWebcam();
+      return;
+    }
+    document.getElementById('wcStats').textContent =
+      `display ${d.display_fps ?? 0} fps · detection ${d.infer_fps ?? 0} fps · ${d.tracks ?? 0} tracked`;
+  } catch (e) { /* transient */ }
+}
+
+async function stopWebcam() {
+  if (wcStatsTimer) { clearInterval(wcStatsTimer); wcStatsTimer = null; }
+  await fetch(`${BASE}/webcam/stop`, {method:'POST'});
+  const img = document.getElementById('wcImg');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('wcPlaceholder').style.display = 'block';
+  document.getElementById('wcStatus').style.display = 'none';
+  document.getElementById('wcStats').textContent = '';
+  document.getElementById('btnWcStart').disabled = false;
+  document.getElementById('btnWcStop').disabled  = true;
+}
+
+// ── Enroll ──────────────────────────────────────────────────────────────────
+async function enrollPerson() {
+  const name   = document.getElementById('enrName').value.trim();
+  const status = document.getElementById('enrStatus').value;
+  const file   = document.getElementById('enrPhoto').files[0];
+  const msgEl  = document.getElementById('enrMsg');
+  if (!name || !file) { msgEl.style.color='var(--danger)'; msgEl.textContent='⚠️ Name and photo are required.'; return; }
+  msgEl.style.color='var(--text-3)'; msgEl.textContent='Enrolling…';
+  const fd = new FormData(); fd.append('name',name); fd.append('status',status); fd.append('photo',file);
+  try {
+    const r = await fetch(`${BASE}/enroll`, {method:'POST', body:fd});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    msgEl.style.color='var(--success)'; msgEl.textContent=`✅ ${name} enrolled as ${status}`;
+    document.getElementById('enrName').value='';
+    document.getElementById('enrPhoto').value='';
+    setTimeout(()=>msgEl.textContent='', 4000);
+    loadPeople();
+  } catch(e) {
+    msgEl.style.color='var(--danger)'; msgEl.textContent='❌ ' + e.message;
+  }
+}
+
+async function loadPeople() {
+  const r = await fetch(`${BASE}/people`);
+  const people = await r.json();
+  const tb = document.getElementById('peopleTable');
+  if (!people.length) { tb.innerHTML='<tr><td colspan="4" style="color:var(--text-3);padding:24px;text-align:center">No persons enrolled yet</td></tr>'; return; }
+  tb.innerHTML = people.map((p,i) => `
+    <tr>
+      <td style="color:var(--text-3);font-variant-numeric:tabular-nums">${i+1}</td>
+      <td style="font-weight:600;color:var(--text)">${p.name}</td>
+      <td><span class="${p.status==='blocklisted'?'badge-block':'badge-auth'}">${p.status==='blocklisted'?'🚫 Blocklisted':'✅ Authorized'}</span></td>
+      <td><button class="btn btn-red" style="width:auto;padding:5px 12px;font-size:12px" onclick="deletePerson(${p.id})">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function deletePerson(id) {
+  if (!confirm('Delete this person?')) return;
+  await fetch(`${BASE}/people/${id}`, {method:'DELETE'});
+  loadPeople();
+}
+
+// ── Alerts (SSE with auto-reconnect) ───────────────────────────────────────
+let alertSource = null;
+
+function connectAlertSSE() {
+  if (alertSource) { alertSource.close(); alertSource = null; }
+  alertSource = new EventSource(`${BASE}/alerts/stream`);
+  alertSource.onmessage = e => {
+    try {
+      const alert = JSON.parse(e.data);
+      prependAlert(alert);
+      const badge = document.getElementById('lpAlert');
+      const isZone = alert.alert_type === 'zone_intrusion';
+      const isIntruder = alert.alert_type === 'intruder';
+      if (isZone) {
+        badge.textContent = `⚠️ ZONE INTRUSION: ${alert.person_name.replace('Zone Intrusion: ','')}`;
+        badge.style.background = 'var(--warning)';
+      } else if (isIntruder) {
+        badge.textContent = `👤 UNKNOWN INTRUDER DETECTED`;
+        badge.style.background = 'var(--purple)';
+      } else {
+        badge.textContent = `🚨 ${alert.person_name} DETECTED`;
+        badge.style.background = 'var(--danger)';
+      }
+      badge.style.display = 'block';
+      setTimeout(() => badge.style.display = 'none', 3000);
+      document.getElementById('tabBtn3').textContent = '🚨 Alerts 🔴';
+    } catch(e) {}
+  };
+  alertSource.onerror = () => {
+    if (alertSource) { alertSource.close(); alertSource = null; }
+    setTimeout(connectAlertSSE, 3000);
+  };
+}
+connectAlertSSE();
+
+function prependAlert(alert) {
+  const feed = document.getElementById('alertsFeed');
+  document.getElementById('alertEmpty').style.display = 'none';
+  const isZone = alert.alert_type === 'zone_intrusion';
+  const isIntruder = alert.alert_type === 'intruder';
+  let icon, nameClass, metaInfo;
+  if (isIntruder) {
+    icon = '👤❓';
+    nameClass = 'alert-name-intruder';
+    metaInfo = `Best similarity: ${(alert.similarity*100).toFixed(1)}% · Source: ${alert.job_id||'?'} · Frame: ${alert.frame_num||'?'}`;
+  } else if (isZone) {
+    icon = '⚠️';
+    nameClass = 'alert-name-zone';
+    metaInfo = `Source: ${alert.job_id||'?'} · Frame: ${alert.frame_num||'?'}`;
+  } else {
+    icon = '🚨';
+    nameClass = 'alert-name';
+    metaInfo = `Similarity: ${(alert.similarity*100).toFixed(1)}% · Source: ${alert.job_id||'?'} · Frame: ${alert.frame_num||'?'}`;
+  }
+  const row = document.createElement('div'); row.className = 'alert-row';
+  row.innerHTML = `
+    <div style="font-size:20px;flex-shrink:0">${icon}</div>
+    <div class="alert-body">
+      <div class="${nameClass}">${alert.person_name}</div>
+      <div class="alert-meta">${metaInfo}</div>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);white-space:nowrap">${alert.timestamp||'just now'}</div>`;
+  feed.insertBefore(row, feed.firstChild);
+  while (feed.children.length > 51) feed.removeChild(feed.lastChild);
+}
+
+async function loadAlerts() {
+  document.getElementById('tabBtn3').textContent = '🚨 Alerts';
+  const r = await fetch(`${BASE}/alerts`);
+  const alerts = await r.json();
+  const feed = document.getElementById('alertsFeed');
+  feed.innerHTML = '';
+  if (!alerts.length) {
+    feed.innerHTML = `<div style="padding:3rem;text-align:center;color:var(--text-3);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:10px" id="alertEmpty">
+      <svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='opacity:0.3'><path d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'/><path d='M13.73 21a2 2 0 0 1-3.46 0'/></svg>
+      No alerts yet — system is monitoring</div>`;
+    return;
+  }
+  const emptyDiv = document.createElement('div');
+  emptyDiv.id = 'alertEmpty'; emptyDiv.style.display = 'none'; feed.appendChild(emptyDiv);
+  alerts.forEach(prependAlert);
+}
+
+async function clearAlerts() {
+  await fetch(`${BASE}/alerts/clear`, {method:'POST'});
+  await loadAlerts();
+}
+</script>
+</body>
+</html>
