@@ -39,6 +39,28 @@ CONF_MIN, CONF_MAX = 0.15, 0.75
 IOU_MIN, IOU_MAX   = 0.30, 0.75
 CALIBRATION_SAMPLES = 15
 
+# Tracking lifecycle
+TRACK_MAX_MISSES = 30    # frames track survives unmatched (~1s at 30fps)
+TRACK_MIN_HITS   = 3     # detections before a track is confirmed
+
+# Crowd analytics
+CROWD_WARNING_THRESHOLD = 10   # count >= this → CROWDED
+CROWD_CRITICAL_THRESHOLD = 20  # count >= this → CRITICAL
+CROWD_HISTORY_LEN       = 300  # samples kept in the rolling window
+
+# Crowd density estimation — adaptive activation
+# When YOLO detects this many or more people, the Gaussian density estimator
+# supplements the raw YOLO count to account for occlusion / missed detections.
+DENSE_YOLO_THRESH = 8
+
+# Crowd trend — number of history samples to use for INCREASING/STABLE/DECREASING.
+# At ~0.5 Hz analytics polling this is roughly 60 seconds of history.
+CROWD_TREND_WINDOW = 30
+
+# Crowd direction — minimum track hits before a track contributes a direction vote.
+# Prevents single-frame ghosts from skewing the dominant-direction calculation.
+CROWD_DIRECTION_MIN_FRAMES = 5
+
 # A face box must have at least this much of its area inside a person box
 # before we accept that they belong to the same human.
 FACE_CONTAINMENT_MIN = 0.60

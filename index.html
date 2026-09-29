@@ -1250,6 +1250,10 @@ code {
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         Alerts
       </div>
+      <div class="tab" id="tabBtn4" onclick="switchTab(4)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Analytics
+      </div>
     </div>
 
     <!-- ════════════════════════════════════════════════════
@@ -1551,6 +1555,133 @@ code {
       </div>
     </div><!-- /tab3 -->
 
+    <!-- ════════════════════════════════════════════════════
+         TAB 5: ANALYTICS
+    ════════════════════════════════════════════════════ -->
+    <div id="tab4" class="tab-content">
+
+      <!-- Header row: title + status badge + Reset button -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:18px;font-weight:700;letter-spacing:-0.3px;color:var(--text)">Crowd Analytics</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:3px">Real-time headcount, density, trend &amp; movement</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="badge" id="crowdStatusBadge" style="font-size:12px;padding:6px 14px">
+            <span id="crowdStatusText">NORMAL</span>
+          </div>
+          <button class="btn btn-outline" id="resetAnalyticsBtn" style="width:auto;padding:7px 16px;font-size:12px;flex-shrink:0" onclick="confirmResetAnalytics()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+            Reset Analytics
+          </button>
+        </div>
+      </div>
+
+      <!-- Trend + Direction row -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <div class="cc" style="flex:1;min-width:160px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Crowd Trend</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span id="trendIcon" style="font-size:20px">➡️</span>
+              <span id="trendText" style="font-size:15px;font-weight:700;color:var(--text)">STABLE</span>
+            </div>
+          </div>
+        </div>
+        <div class="cc" style="flex:1;min-width:160px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Crowd Direction</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span id="dirIcon" style="font-size:20px">⏹️</span>
+              <span id="dirText" style="font-size:15px;font-weight:700;color:var(--text)">NONE</span>
+            </div>
+          </div>
+        </div>
+        <div class="cc" style="flex:1;min-width:160px;padding:14px 18px;display:flex;align-items:center;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Density Level</div>
+            <div class="badge" id="densityBadge" style="font-size:12px;padding:5px 12px;display:inline-block">
+              <span id="densityText">LOW</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main stat cards -->
+      <div class="stats" style="margin-bottom:16px">
+        <div class="stat">
+          <div class="num" id="cCurrent" style="color:var(--accent)">—</div>
+          <div class="lbl">YOLO Count</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="cTracked" style="color:var(--success)">—</div>
+          <div class="lbl">Tracked (confirmed)</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="cEstimated" style="color:var(--warning)">—</div>
+          <div class="lbl">Est. Crowd</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="cPeak">—</div>
+          <div class="lbl">Peak</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="cAverage">—</div>
+          <div class="lbl">Average</div>
+        </div>
+        <div class="stat">
+          <div class="num" id="cMin">—</div>
+          <div class="lbl">Minimum</div>
+        </div>
+      </div>
+
+      <!-- Dense mode note -->
+      <div id="denseModeNote" style="display:none;font-size:11px;color:var(--warning);margin-bottom:10px;padding:8px 12px;background:var(--warning-dim);border-radius:6px;border:1px solid rgba(245,158,11,0.2)">
+        ⚠️ Dense-scene mode active — Estimated Crowd supplements YOLO count to account for occlusion. IDs are not fabricated from the estimate.
+      </div>
+
+      <!-- Headcount sparkline chart -->
+      <div class="cc" style="padding:20px;display:block;margin-bottom:20px">
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Headcount history (YOLO tracked)</div>
+        <canvas id="crowdChart" width="800" height="160" style="width:100%;height:160px;display:block"></canvas>
+      </div>
+
+      <!-- Zone Occupancy table -->
+      <p class="slabel">Zone Occupancy</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Zone Name</th>
+              <th>Current Count</th>
+              <th style="text-align:right">Status</th>
+            </tr>
+          </thead>
+          <tbody id="crowdZoneBody">
+            <tr><td colspan="3" style="text-align:center;color:var(--text-3)">No zones configured</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Crowd Events log -->
+      <p class="slabel" style="margin-top:20px">Crowd Events</p>
+      <div id="crowdEventsBox" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;min-height:80px;box-shadow:var(--shadow);max-height:220px;overflow-y:auto">
+        <div id="crowdEventsEmpty" style="padding:2rem;text-align:center;color:var(--text-3);font-size:13px">No crowd events yet</div>
+      </div>
+
+      <!-- Reset confirmation dialog (hidden by default) -->
+      <div id="resetConfirmDialog" style="display:none;margin-top:16px;padding:16px;background:var(--danger-dim);border:1px solid rgba(220,38,38,0.25);border-radius:var(--radius-lg)">
+        <div style="font-weight:600;color:var(--danger);margin-bottom:8px">⚠️ Reset Analytics?</div>
+        <div style="font-size:13px;color:var(--text-2);margin-bottom:12px">This clears all headcount history, peak/average statistics, trend data, direction history, and crowd events. This cannot be undone.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" style="width:auto;padding:7px 16px;font-size:12px" onclick="doResetAnalytics()">Yes, reset everything</button>
+          <button class="btn btn-outline" style="width:auto;padding:7px 16px;font-size:12px" onclick="cancelResetAnalytics()">Cancel</button>
+        </div>
+      </div>
+
+    </div><!-- /tab4 -->
+
+
   </main>
 </div><!-- /app-shell -->
 
@@ -1601,11 +1732,18 @@ checkServer();
 setInterval(checkServer, 10000);
 
 // ── Tab switching ───────────────────────────────────────────────────────────
+let analyticsTimer = null;
 function switchTab(idx) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
   document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('active', i===idx));
   if (idx === 2) loadPeople();
   if (idx === 3) loadAlerts();
+  if (idx === 4) {
+    if (!analyticsTimer) analyticsTimer = setInterval(loadAnalytics, 2000);
+    loadAnalytics();
+  } else {
+    if (analyticsTimer) { clearInterval(analyticsTimer); analyticsTimer = null; }
+  }
 }
 
 // ── File upload / drag-drop ─────────────────────────────────────────────────
@@ -2219,6 +2357,180 @@ async function clearAlerts() {
   await fetch(`${BASE}/alerts/clear`, {method:'POST'});
   await loadAlerts();
 }
+// ── Analytics ──────────────────────────────────────────────────────────────
+
+// Trend icon mapping
+const TREND_ICONS = { INCREASING: '📈', DECREASING: '📉', STABLE: '➡️' };
+const TREND_COLORS = { INCREASING: 'var(--warning)', DECREASING: 'var(--danger)', STABLE: 'var(--text-2)' };
+
+// Direction icon mapping
+const DIR_ICONS = { LEFT: '⬅️', RIGHT: '➡️', UP: '⬆️', DOWN: '⬇️', NONE: '⏹️' };
+
+// Density badge styling
+function _applyDensityBadge(badge, text, level) {
+  text.textContent = level;
+  const configs = {
+    LOW:      { bg: 'var(--success-dim)', color: 'var(--success)', border: 'rgba(34,197,94,0.2)' },
+    MEDIUM:   { bg: 'var(--warning-dim)', color: 'var(--warning)', border: 'rgba(245,158,11,0.2)' },
+    HIGH:     { bg: 'rgba(220,38,38,0.08)', color: 'var(--danger)', border: 'rgba(220,38,38,0.2)' },
+    CRITICAL: { bg: 'var(--danger-dim)',   color: 'var(--danger)', border: 'rgba(220,38,38,0.35)' },
+  };
+  const c = configs[level] || configs.LOW;
+  badge.style.background = c.bg;
+  badge.style.color = c.color;
+  badge.style.borderColor = c.border;
+}
+
+async function loadAnalytics() {
+  try {
+    const r = await fetch(`${BASE}/analytics/crowd`);
+    if (!r.ok) return;
+    const d = await r.json();
+
+    // ── Stat cards ────────────────────────────────────────────────────
+    document.getElementById('cCurrent').textContent    = d.current_count ?? '—';
+    document.getElementById('cTracked').textContent    = d.tracked_count ?? '—';
+    document.getElementById('cEstimated').textContent  = d.density_active ? d.estimated_count : '—';
+    document.getElementById('cPeak').textContent       = d.peak_count;
+    document.getElementById('cAverage').textContent    = d.average_count;
+    document.getElementById('cMin').textContent        = d.minimum_count;
+
+    // Dense mode note
+    document.getElementById('denseModeNote').style.display = d.density_active ? 'block' : 'none';
+
+    // ── Status badge ──────────────────────────────────────────────────
+    const badge = document.getElementById('crowdStatusBadge');
+    const txt   = document.getElementById('crowdStatusText');
+    txt.textContent = d.status;
+    if (d.status === 'CRITICAL') {
+      badge.style.background = 'var(--danger-dim)'; badge.style.color = 'var(--danger)'; badge.style.borderColor = 'rgba(220,38,38,0.2)';
+    } else if (d.status === 'CROWDED') {
+      badge.style.background = 'var(--warning-dim)'; badge.style.color = 'var(--warning)'; badge.style.borderColor = 'rgba(245,158,11,0.2)';
+    } else {
+      badge.style.background = 'var(--success-dim)'; badge.style.color = 'var(--success)'; badge.style.borderColor = 'rgba(34,197,94,0.2)';
+    }
+
+    // ── Trend ─────────────────────────────────────────────────────────
+    const trend = d.trend || 'STABLE';
+    document.getElementById('trendIcon').textContent = TREND_ICONS[trend] || '➡️';
+    const trendEl = document.getElementById('trendText');
+    trendEl.textContent = trend;
+    trendEl.style.color = TREND_COLORS[trend] || 'var(--text-2)';
+
+    // ── Direction ─────────────────────────────────────────────────────
+    const dir = d.dominant_direction || 'NONE';
+    document.getElementById('dirIcon').textContent = DIR_ICONS[dir] || '⏹️';
+    document.getElementById('dirText').textContent = dir;
+
+    // ── Density level ─────────────────────────────────────────────────
+    _applyDensityBadge(
+      document.getElementById('densityBadge'),
+      document.getElementById('densityText'),
+      d.density_level || 'LOW'
+    );
+
+    // ── Zone table ────────────────────────────────────────────────────
+    const zb = document.getElementById('crowdZoneBody');
+    const zoneNames = Object.keys(d.zones || {});
+    if (zoneNames.length === 0) {
+      zb.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-3)">No zones configured</td></tr>';
+    } else {
+      zb.innerHTML = zoneNames.map(z => {
+        const zs = d.zones[z];
+        const color = zs.status === 'CRITICAL' ? 'var(--danger)' : (zs.status === 'CROWDED' ? 'var(--warning)' : 'var(--success)');
+        return `<tr>
+          <td style="font-weight:600;color:var(--text)">${z}</td>
+          <td style="color:var(--text-2);font-variant-numeric:tabular-nums">${zs.count}</td>
+          <td style="text-align:right;color:${color};font-weight:700;font-size:11px">${zs.status}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── Crowd events ──────────────────────────────────────────────────
+    const events = d.events || [];
+    const evBox   = document.getElementById('crowdEventsBox');
+    const evEmpty = document.getElementById('crowdEventsEmpty');
+    if (events.length === 0) {
+      evEmpty.style.display = '';
+      // Remove any event rows (keep the empty placeholder)
+      Array.from(evBox.querySelectorAll('.crowd-event-row')).forEach(el => el.remove());
+    } else {
+      evEmpty.style.display = 'none';
+      // Render events newest-first; rebuild the list each poll (events list is capped at 20)
+      Array.from(evBox.querySelectorAll('.crowd-event-row')).forEach(el => el.remove());
+      [...events].reverse().forEach(ev => {
+        const row = document.createElement('div');
+        row.className = 'crowd-event-row';
+        row.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px';
+        const isGlobal = ev.type === 'global_crowd';
+        const desc = isGlobal
+          ? `Global → <strong>${ev.new_state}</strong> (${ev.count} people)`
+          : `Zone <strong>${ev.zone}</strong> → <strong>${ev.new_state}</strong> (${ev.count} people)`;
+        const color = ev.new_state === 'CRITICAL' ? 'var(--danger)' : ev.new_state === 'CROWDED' ? 'var(--warning)' : 'var(--success)';
+        row.innerHTML = `<span style="color:var(--text-2)">${desc}</span><span style="color:${color};font-weight:700;font-size:10px">${ev.new_state}</span>`;
+        evBox.insertBefore(row, evEmpty.nextSibling || null);
+      });
+    }
+
+    // ── Sparkline chart ───────────────────────────────────────────────
+    const canvas = document.getElementById('crowdChart');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const hist = d.history;
+    if (hist.length > 1) {
+      const maxCount = Math.max(...hist.map(v => v[1]), 5);
+      const minT = hist[0][0], maxT = hist[hist.length-1][0];
+      const dT = Math.max(maxT - minT, 1);
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#2563EB';
+      ctx.lineWidth = 2;
+
+      hist.forEach((pt, i) => {
+        const cx = ((pt[0] - minT) / dT) * w;
+        const cy = h - (pt[1] / maxCount) * (h - 20) - 10;
+        if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+      });
+      ctx.stroke();
+
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(37,99,235,0.4)');
+      grad.addColorStop(1, 'rgba(37,99,235,0.0)');
+      ctx.lineTo(w, h); ctx.lineTo(0, h);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    } else if (hist.length === 1) {
+      const pt = hist[0];
+      const maxCount = Math.max(pt[1], 5);
+      const cy = h - (pt[1] / maxCount) * (h - 20) - 10;
+      ctx.fillStyle = '#2563EB';
+      ctx.beginPath(); ctx.arc(w/2, cy, 3, 0, Math.PI*2); ctx.fill();
+    }
+  } catch (e) {}
+}
+
+// ── Reset Analytics ────────────────────────────────────────────────────────
+function confirmResetAnalytics() {
+  document.getElementById('resetConfirmDialog').style.display = 'block';
+}
+
+function cancelResetAnalytics() {
+  document.getElementById('resetConfirmDialog').style.display = 'none';
+}
+
+async function doResetAnalytics() {
+  try {
+    const r = await fetch(`${BASE}/analytics/reset`, { method: 'POST' });
+    if (r.ok) {
+      document.getElementById('resetConfirmDialog').style.display = 'none';
+      // Reload immediately so the UI reflects the cleared state
+      await loadAnalytics();
+    }
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
+

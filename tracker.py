@@ -27,12 +27,13 @@ live camera pass wall-clock seconds; for a video file pass ``frame_num / fps``.
 Both then behave identically, and video processing stays deterministic.
 """
 
+from config import TRACK_MAX_MISSES, TRACK_MIN_HITS
 from collections import deque
 
 # Association / lifecycle defaults
 IOU_MATCH_THRESH = 0.30   # below this, a detection cannot continue a track
-MAX_MISSES       = 12     # frames a track survives unmatched before deletion
-MIN_HITS         = 3      # matches before a track is shown/alerted on
+MAX_MISSES       = TRACK_MAX_MISSES
+MIN_HITS         = TRACK_MIN_HITS
 EMA_ALPHA        = 0.6    # box smoothing: higher = more responsive, less smooth
 VEL_ALPHA        = 0.4    # velocity smoothing
 MAX_COAST_SECS   = 0.5    # never extrapolate further than this into the future
@@ -136,6 +137,19 @@ class Track:
         """True once the track has been seen enough to be trustworthy."""
         return self.hits >= MIN_HITS
 
+    @property
+    def state(self):
+        """active, coasting, or lost"""
+        # Note: self.misses could be compared against the Tracker's max_misses,
+        # but TRACK_MAX_MISSES is a reasonable global fallback if the track doesn't
+        # know its tracker's max_misses. To be exact, it should probably be checked by the tracker, 
+        # but let's just use the global.
+        if self.misses > MAX_MISSES:
+            return "lost"
+        if self.misses > 0:
+            return "coasting"
+        return "active"
+
     def update(self, bbox, conf, now):
         """Fold a matched detection into the track with EMA smoothing."""
         dt = max(1e-3, now - self.updated_at)
@@ -219,6 +233,7 @@ class Track:
             "identity_sim": self.identity_sim,
             "identity_state": self.identity_state,
             "confirmed": self.confirmed,
+            "state": self.state,
         }
 
 

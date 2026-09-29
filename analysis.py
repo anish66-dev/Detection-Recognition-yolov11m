@@ -97,7 +97,11 @@ def analyse_frame(frame, trk, conf_thresh, iou_thresh, zones, now,
             Identity persists on the track, so skipping is invisible in output.
 
     Returns:
-        List of per-person record dicts (see ``Track.to_record``).
+        (records, detections) where:
+          records    — list of per-person record dicts (see ``Track.to_record``).
+          detections — raw YOLO detection list [[x1,y1,x2,y2,conf], ...] so
+                       callers can pass it to the density estimator without
+                       running YOLO a second time.
     """
     detections = pipeline.detect_persons(frame, conf_thresh, iou_thresh)
     trk.update(detections, now)
@@ -122,7 +126,7 @@ def analyse_frame(frame, trk, conf_thresh, iou_thresh, zones, now,
     for t in live_tracks:
         t.zone = zone_for_box(t.predict(now), zones)
 
-    return [t.to_record(now) for t in live_tracks]
+    return [t.to_record(now) for t in live_tracks], detections
 
 
 # ============================================================

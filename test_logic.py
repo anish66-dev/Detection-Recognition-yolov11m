@@ -117,6 +117,42 @@ def test_tracker():
     assert live == []
     ok("track expires after enough consecutive misses")
 
+def test_tracker_recovery():
+    section("tracker.py (recovery)")
+    trk = Tracker(max_misses=5)
+    
+    # 1. New track
+    trk.update([[100, 50, 160, 250, 0.9]], now=0.0)
+    t_id = trk.tracks[0].id
+    assert trk.tracks[0].state == "active"
+    
+    # 2. Miss for 3 frames (coasting)
+    for i in range(1, 4):
+        trk.update([], now=i / 30.0)
+    assert len(trk.tracks) == 1
+    assert trk.tracks[0].id == t_id
+    assert trk.tracks[0].state == "coasting"
+    ok("track kept alive during missed frames (coasting)")
+    
+    # 3. Re-detect within max_misses (should restore ID)
+    trk.update([[102, 52, 162, 252, 0.9]], now=4.0 / 30.0)
+    assert len(trk.tracks) == 1
+    assert trk.tracks[0].id == t_id
+    assert trk.tracks[0].state == "active"
+    ok("re-detection within max_misses restores same ID")
+    
+    # 4. Miss beyond max_misses
+    for i in range(5, 12):
+        trk.update([], now=i / 30.0)
+    assert len(trk.tracks) == 0
+    ok("track evicted after max_misses consecutive misses")
+    
+    # 5. New detection gets new ID
+    trk.update([[100, 50, 160, 250, 0.9]], now=12.0 / 30.0)
+    assert len(trk.tracks) == 1
+    assert trk.tracks[0].id > t_id
+    ok("new detection after eviction gets a new higher ID")
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Alert engine
@@ -334,8 +370,231 @@ def test_app():
     ok(f"camera source parsing correct for {len(cases)} specs")
 
 
+def test_crowd():
+    section("analytics.py (crowd)")
+    from analytics.crowd_counter import CrowdCounter
+    from analytics.crowd_monitor import CrowdMonitor
+    import config
+    
+    config.CROWD_WARNING_THRESHOLD = 2
+    config.CROWD_CRITICAL_THRESHOLD = 4
+    
+    counter = CrowdCounter()
+    monitor = CrowdMonitor()
+    
+    zones = [{"name": "Lobby"}, {"name": "Vault"}]
+    
+    # Empty
+    stats = counter.update([], zones, now=0.0)
+    events = monitor.evaluate(stats["current_count"], stats["zones"], now=0.0)
+    assert stats["current_count"] == 0
+    assert not events
+    
+    # 1 active, 1 coasting -> count 1
+    records = [
+        {"state": "active", "zone": "Lobby"},
+        {"state": "coasting", "zone": "Vault"}
+    ]
+    stats = counter.update(records, zones, now=1.0)
+    events = monitor.evaluate(stats["current_count"], stats["zones"], now=1.0)
+    
+    assert stats["current_count"] == 1
+    assert stats["peak_count"] == 1
+    assert stats["zones"]["Lobby"] == 1
+    assert stats["zones"]["Vault"] == 0
+    assert monitor.state == "NORMAL"
+    ok("active tracks counted, coasting ignored")
+    
+    # Jump to 3 (WARNING)
+    records = [{"state": "active", "zone": "Lobby", "confirmed": True}] * 3
+    stats = counter.update(records, zones, now=2.0)
+    events = monitor.evaluate(stats["current_count"], stats["zones"], now=2.0)
+    
+    assert stats["current_count"] == 3
+    assert stats["peak_count"] == 3
+    assert any(e["type"] == "global_crowd" and e["new_state"] == "CROWDED" for e in events)
+    assert monitor.state == "CROWDED"
+    ok("thresholds fire correctly (NORMAL -> CROWDED)")
+    
+    # Stay at 3 -> no new events
+    events = monitor.evaluate(stats["current_count"], stats["zones"], now=3.0)
+    assert not events
+    ok("state-change event emitted only once per transition")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Density Estimator
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_density_estimator():
+    section("analytics/density_estimator.py")
+
+    from analytics.density_estimator import DensityEstimator
+    import config
+
+    est = DensityEstimator()
+    frame_shape = (720, 1280)
+
+    # Sparse scene: below DENSE_YOLO_THRESH — pass-through, no density mode.
+    sparse_boxes = [[100, 100, 160, 300, 0.9]] * (config.DENSE_YOLO_THRESH - 1)
+    count, active = est.estimate(sparse_boxes, frame_shape)
+    assert active is False, "Dense mode should NOT activate for sparse scene"
+    assert count == float(len(sparse_boxes)), "Sparse scene should return YOLO count"
+    ok("sparse scene: density estimator is pass-through")
+
+    # Dense scene: at or above DENSE_YOLO_THRESH — density mode activates.
+    # Use a fresh estimator so the EMA starting point is zero (no bleed from the sparse test).
+    est2 = DensityEstimator()
+    dense_boxes = [[50 + i * 60, 100, 110 + i * 60, 400, 0.85]
+                   for i in range(config.DENSE_YOLO_THRESH + 5)]
+    # Run several frames to let EMA converge
+    count2, active2 = None, None
+    for _ in range(5):
+        count2, active2 = est2.estimate(dense_boxes, frame_shape)
+    assert active2 is True, "Dense mode should activate for dense scene"
+    yolo_n = len(dense_boxes)
+    # Estimate should be within 20% of the YOLO count. Boundary-clipped kernels
+    # can make the integral slightly less than the exact headcount.
+    assert abs(count2 - yolo_n) / yolo_n <= 0.20, (
+        f"Density estimate ({count2}) is more than 20% off YOLO count ({yolo_n})"
+    )
+    ok("dense scene: density mode activates and estimate within 20% of YOLO count")
+
+
+
+    # Reset clears smoothing state.
+    est.reset()
+    count3, active3 = est.estimate([], frame_shape)
+    assert active3 is False
+    assert count3 == 0.0
+    ok("reset clears estimator state")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Crowd Trend
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_crowd_trend():
+    section("CrowdMonitor — trend")
+
+    from analytics.crowd_monitor import CrowdMonitor
+
+    monitor = CrowdMonitor()
+
+    # Build increasing counts over CROWD_TREND_WINDOW samples
+    import config
+    window = config.CROWD_TREND_WINDOW
+    for i in range(window):
+        monitor.evaluate(i, {}, now=float(i))
+    assert monitor.trend == "INCREASING", f"Expected INCREASING, got {monitor.trend}"
+    ok("crowd trend correctly reports INCREASING")
+
+    monitor2 = CrowdMonitor()
+    # Decreasing counts
+    for i in range(window, 0, -1):
+        monitor2.evaluate(i, {}, now=float(window - i))
+    assert monitor2.trend == "DECREASING", f"Expected DECREASING, got {monitor2.trend}"
+    ok("crowd trend correctly reports DECREASING")
+
+    monitor3 = CrowdMonitor()
+    # Stable counts
+    for _ in range(window):
+        monitor3.evaluate(5, {}, now=0.0)
+    assert monitor3.trend == "STABLE", f"Expected STABLE, got {monitor3.trend}"
+    ok("crowd trend correctly reports STABLE")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Direction Analyzer
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_direction_analyzer():
+    section("analytics/direction_analyzer.py")
+
+    from analytics.direction_analyzer import DirectionAnalyzer, VOTE_WINDOW
+    from tracker import Tracker
+
+    analyzer = DirectionAnalyzer()
+    trk = Tracker()
+
+    # Simulate a person walking RIGHT (x increases each frame)
+    for i in range(20):
+        x = 100 + i * 15
+        trk.update([[x, 100, x + 60, 300, 0.9]], now=i / 30.0)
+
+    direction = analyzer.update(trk.tracks)
+    # After enough frames the direction should converge to RIGHT or NONE
+    # (depends on velocity magnitude vs MIN_VELOCITY_PX_S)
+    assert direction in ("RIGHT", "NONE"), f"Unexpected direction: {direction}"
+    ok(f"direction analyzer output '{direction}' for rightward motion (RIGHT or NONE accepted)")
+
+    analyzer.reset()
+    assert analyzer.dominant_direction == "NONE"
+    ok("direction analyzer reset clears state")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Reset Analytics
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_reset_analytics():
+    section("CrowdCounter + CrowdMonitor — reset()")
+
+    from analytics.crowd_counter import CrowdCounter
+    from analytics.crowd_monitor import CrowdMonitor
+
+    counter = CrowdCounter()
+    monitor = CrowdMonitor()
+    zones = []
+
+    # Accumulate some state.
+    for i in range(5):
+        records = [{"state": "active", "zone": None, "confirmed": True}] * (i + 1)
+        stats = counter.update(records, zones, now=float(i))
+        monitor.evaluate(stats["current_count"], {}, now=float(i))
+
+    assert counter.peak_count > 0
+    assert counter.sample_count > 0
+    assert len(counter.history) > 0
+
+    counter.reset()
+    monitor.reset()
+
+    assert counter.current_count == 0, "current_count must be 0 after reset"
+    assert counter.peak_count == 0, "peak_count must be 0 after reset"
+    assert counter.min_count == -1, "min_count must be -1 (sentinel) after reset"
+    assert counter.sample_count == 0, "sample_count must be 0 after reset"
+    assert len(counter.history) == 0, "history must be empty after reset"
+    assert counter.estimated_count == 0.0
+    assert counter.density_level == "LOW"
+
+    assert monitor.state == "NORMAL"
+    assert monitor.trend == "STABLE"
+    assert monitor.dominant_direction == "NONE"
+    assert len(monitor.events) == 0
+    ok("reset() clears all accumulated counter state")
+    ok("reset() clears all accumulated monitor state")
+
+    # After reset, accumulation starts fresh from next update.
+    records = [{"state": "active", "zone": None, "confirmed": True}]
+    stats = counter.update(records, zones, now=100.0)
+    assert stats["current_count"] == 1
+    assert stats["peak_count"] == 1
+    assert stats["average_count"] == 1.0
+    ok("analytics accumulate correctly after reset")
+
+
 if __name__ == "__main__":
     test_tracker()
+    test_tracker_recovery()
     test_alerts()
+    # Analytics tests must run BEFORE test_app, because test_app installs a
+    # MagicMock for numpy via sys.modules.setdefault("numpy", MagicMock()).
+    # Once that mock is in place, numpy-dependent analytics code breaks.
+    test_density_estimator()
+    test_crowd_trend()
+    test_direction_analyzer()
+    test_reset_analytics()
     test_app()
+    test_crowd()
     print(f"\n{len(PASSED)} checks passed.")

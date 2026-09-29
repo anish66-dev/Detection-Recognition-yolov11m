@@ -10,6 +10,39 @@ import queue
 import threading
 
 import database
+from analytics.crowd_counter    import CrowdCounter
+from analytics.crowd_monitor    import CrowdMonitor
+from analytics.direction_analyzer import DirectionAnalyzer
+
+# ── Crowd Analytics ──────────────────────────────────────────────────────────
+
+_crowd_counter    = CrowdCounter()
+_crowd_monitor    = CrowdMonitor()
+_direction_analyzer = DirectionAnalyzer()
+
+
+def reset_analytics():
+    """
+    Clear all accumulated session analytics and restart from a clean state.
+
+    What is reset:
+      - headcount history (current / peak / avg / min / estimated)
+      - crowd trend history
+      - crowd direction history
+      - zone statistics
+      - crowd events log
+      - density estimator smoothing state
+
+    What is NOT reset:
+      - model weights / configuration
+      - alert database records
+      - enrolled faces
+      - live session / video job state
+      - application configuration
+    """
+    _crowd_counter.reset()
+    _crowd_monitor.reset()
+    _direction_analyzer.reset()
 
 
 # ── Video processing jobs ────────────────────────────────────────────────────

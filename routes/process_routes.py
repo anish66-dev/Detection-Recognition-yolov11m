@@ -64,6 +64,13 @@ def _process_worker(job_id, input_path, conf_thresh, iou_thresh, thickness, font
     frame_ref = [0]
     engine = AlertEngine(make_alert_sink(job_id, frame_ref))
 
+    from analytics.crowd_counter import CrowdCounter
+    from analytics.crowd_monitor import CrowdMonitor
+    from analytics.direction_analyzer import DirectionAnalyzer
+    crowd_counter    = CrowdCounter()
+    crowd_monitor    = CrowdMonitor()
+    direction_analyzer = DirectionAnalyzer()
+
     total_det   = 0
     peak        = 0
     frame_num   = 0
@@ -89,13 +96,24 @@ def _process_worker(job_id, input_path, conf_thresh, iou_thresh, thickness, font
         # must not change the results it produces.
         now = frame_num / fps
 
-        records = analyse_frame(
+        records, detections = analyse_frame(
             frame, trk, conf_thresh, iou_thresh, zones, now,
             do_recognition=(frame_num % RECOG_STRIDE_VIDEO == 0 or frame_num == 1),
         )
         engine.evaluate(records, now,
                         intruder_detection=intruder_detection,
                         has_enrollment=has_enrollment())
+
+        crowd_stats = crowd_counter.update(
+            records, zones, now,
+            detections=detections,
+            frame_shape=frame.shape,
+        )
+        direction = direction_analyzer.update(trk.tracks)
+        crowd_monitor.evaluate(
+            crowd_stats["current_count"], crowd_stats["zones"], now,
+            dominant_direction=direction,
+        )
 
         zone_counts = count_zones(records, zones)
         count = len(records)
@@ -186,13 +204,21 @@ def _process_worker(job_id, input_path, conf_thresh, iou_thresh, thickness, font
     input_path.unlink(missing_ok=True)
 
     job['status']['done'] = True
+    crowd_final = crowd_counter.get_stats()
+    monitor_final = crowd_monitor.get_status()
     job['status']['stats'] = {
         "frames": frame_num,
         "total_detections": int(total_det),
         "peak_per_frame": int(peak),
         "unique_people": max(0, trk.next_id - 1),
         "coords_rows": len(all_coords),
-        "zones": [{"name": n, "peak": zone_peak[n], "total_frames_occupied": zone_total[n]} for n in zone_peak]
+        "zones": [{"name": n, "peak": zone_peak[n], "total_frames_occupied": zone_total[n]} for n in zone_peak],
+        "crowd": {
+            **crowd_final,
+            "trend":             monitor_final["trend"],
+            "dominant_direction": monitor_final["dominant_direction"],
+            "status":            monitor_final["status"],
+        }
     }
     job['frame_queue'].put(None)  # EOF sentinel
 

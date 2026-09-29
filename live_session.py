@@ -19,7 +19,9 @@ import cv2
 import time
 import threading
 
+import pipeline
 import tracker as tracking
+import app_state
 from alerts import AlertEngine
 from camera import CameraSource
 from geometry import normalize_zones
@@ -109,13 +111,39 @@ class LiveSession:
 
             now = time.time()
             with self._trk_lock:
-                records = analyse_frame(
+                records, detections = analyse_frame(
                     frame, self.tracker, self.conf, self.iou, self.zones, now,
                     do_recognition=(frame_num % RECOG_STRIDE_LIVE == 0 or frame_num == 1),
                 )
             self.engine.evaluate(records, now,
                                  intruder_detection=self.intruder_detection,
                                  has_enrollment=has_enrollment())
+
+            # Pass raw detections (already computed by analyse_frame — no second
+            # YOLO run) and frame shape to the density estimator.
+            stats = app_state._crowd_counter.update(
+                records, self.zones, now,
+                detections=detections,
+                frame_shape=frame.shape,
+            )
+
+            # Direction analysis uses the tracker velocity vectors directly.
+            direction = app_state._direction_analyzer.update(self.tracker.tracks)
+
+            events = app_state._crowd_monitor.evaluate(
+                stats["current_count"], stats["zones"], now,
+                dominant_direction=direction,
+            )
+            for event in events:
+                # Reuse the alert broadcasting channel for crowd alerts
+                if event["type"] == "global_crowd":
+                    msg = f"Crowd level changed to {event['new_state']} ({event['count']} people)"
+                else:
+                    msg = f"Zone {event['zone']} changed to {event['new_state']} ({event['count']} people)"
+                app_state.push_alert_to_subscribers({
+                    "id": 0, "type": "crowd", "name": msg,
+                    "sim": 0, "timestamp": now, "time_str": "LIVE", "frame_num": frame_num
+                })
 
             with self._rec_lock:
                 self._records = records

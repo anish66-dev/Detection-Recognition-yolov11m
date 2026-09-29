@@ -27,6 +27,7 @@ from routes.process_routes import bp as process_bp
 from routes.webcam_routes import bp as webcam_bp
 from routes.enroll_routes import bp as enroll_bp
 from routes.alert_routes import bp as alert_bp
+from routes.analytics_routes import bp as analytics_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -36,6 +37,7 @@ app.register_blueprint(process_bp)
 app.register_blueprint(webcam_bp)
 app.register_blueprint(enroll_bp)
 app.register_blueprint(alert_bp)
+app.register_blueprint(analytics_bp)
 
 
 if __name__ == "__main__":
