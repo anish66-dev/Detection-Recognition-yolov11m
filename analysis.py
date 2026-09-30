@@ -73,17 +73,21 @@ def zone_for_box(bbox, zones):
     """
     Zone containing this person, using the bottom-centre of the box as the
     ground contact point. Returns the zone name, or None.
+    
+    For overlapping zones, returns ALL zones the person is in (comma-joined).
+    First match wins for coloring purposes, but all zones are listed in the label.
     """
     x1, y1, x2, y2 = bbox
     ref_x, ref_y = (x1 + x2) / 2.0, y2
+    matched = []
     for z in zones:
         if point_in_polygon(ref_x, ref_y, z["points"]):
-            return z["name"]
-    return None
+            matched.append(z["name"])
+    return ", ".join(matched) if matched else None
 
 
 def analyse_frame(frame, trk, conf_thresh, iou_thresh, zones, now,
-                  do_recognition=True):
+                  do_recognition=True, precomputed_detections=None, precomputed_faces=None):
     """
     Stage 1: work out what is true about this frame. Pure analysis.
 
@@ -103,13 +107,21 @@ def analyse_frame(frame, trk, conf_thresh, iou_thresh, zones, now,
                        callers can pass it to the density estimator without
                        running YOLO a second time.
     """
-    detections = pipeline.detect_persons(frame, conf_thresh, iou_thresh)
+    if precomputed_detections is not None:
+        detections = precomputed_detections
+    else:
+        detections = pipeline.detect_persons(frame, conf_thresh, iou_thresh)
+        
     trk.update(detections, now)
 
     live_tracks = trk.active()
 
     if do_recognition and live_tracks:
-        faces = pipeline.detect_faces(frame)
+        if precomputed_faces is not None:
+            faces = precomputed_faces
+        else:
+            faces = pipeline.detect_faces(frame)
+            
         if faces:
             boxes = [t.predict(now) for t in live_tracks]
             assigned = assign_faces_to_persons(boxes, faces)
@@ -121,6 +133,7 @@ def analyse_frame(frame, trk, conf_thresh, iou_thresh, zones, now,
                     match["name"] if match else None,
                     match["status"] if match else None,
                     sim, state,
+                    person_id=match["id"] if match else None
                 )
 
     for t in live_tracks:
@@ -149,7 +162,8 @@ def _style_for(rec):
         return ALERT_BOX_COLOR, ALERT_LABEL_BG, f"{rec['identity_name']} {rec['identity_sim']:.2f}"
     if state == "unknown":
         return INTRUDER_BOX_COLOR, INTRUDER_LABEL_BG, f"INTRUDER {rec['identity_sim']:.2f}"
-    if state == "known" and status == "authorized":
+    if state == "known":
+        # Any known person not explicitly blocklisted gets their name shown.
         return AUTH_BOX_COLOR, AUTH_LABEL_BG, f"{rec['identity_name']} {rec['identity_sim']:.2f}"
     if rec["zone"]:
         return ZONE_BOX_COLOR, ZONE_LABEL_BG, f"Person {rec['conf']:.2f}"

@@ -1296,8 +1296,8 @@ code {
       <div class="config-grid">
         <div class="cc">
           <label>Confidence Threshold</label>
-          <div class="val" id="confVal">0.40</div>
-          <input type="range" min="10" max="90" value="40" step="1" id="confSlider">
+          <div class="val" id="confVal">0.60</div>
+          <input type="range" min="10" max="90" value="60" step="1" id="confSlider">
           <div class="hint">Higher = fewer, more certain detections</div>
         </div>
         <div class="cc">
@@ -1350,7 +1350,7 @@ code {
       <div class="toggle-row">
         <label>
           <div class="toggle-switch">
-            <input type="checkbox" id="intruderToggle" checked>
+            <input type="checkbox" id="intruderToggle">
             <div class="toggle-track"></div>
           </div>
           <div>
@@ -1388,6 +1388,35 @@ code {
           <div class="lp-overlay" id="lpOverlay" style="display:none"></div>
           <div class="lp-alert" id="lpAlert">🚨 BLOCKLIST DETECTED</div>
         </div>
+
+        <!-- Live Crowd Analytics during processing -->
+        <div id="liveCrowdPanel" style="display:none; margin-top:14px; padding:14px; background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius);">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">📊 Live Crowd Analytics</div>
+          <div class="stats" style="margin-bottom:0;">
+            <div class="stat"><div class="num" id="lcCurrent" style="font-size:20px">0</div><div class="lbl">Persons</div></div>
+            <div class="stat"><div class="num" id="lcTracked" style="font-size:20px">0</div><div class="lbl">Tracked</div></div>
+            <div class="stat"><div class="num" id="lcPeak" style="font-size:20px">0</div><div class="lbl">Peak</div></div>
+            <div class="stat"><div class="num" id="lcAvg" style="font-size:20px">0</div><div class="lbl">Average</div></div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Status</span>
+              <span id="lcStatus" style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--success-dim);color:var(--success);">NORMAL</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Trend</span>
+              <span id="lcTrend" style="font-size:12px;font-weight:600;color:var(--text-2);">➡️ STABLE</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Density</span>
+              <span id="lcDensity" style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--success-dim);color:var(--success);">LOW</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;">Direction</span>
+              <span id="lcDir" style="font-size:12px;font-weight:600;color:var(--text-2);">⏹️ NONE</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Results -->
@@ -1402,6 +1431,12 @@ code {
           <div class="stat"><div class="num" id="rPeak">—</div><div class="lbl">Peak</div></div>
           <div class="stat"><div class="num" id="rCoords">—</div><div class="lbl">CSV Rows</div></div>
         </div>
+        <div class="stats" id="rCrowdStats" style="display:none; margin-top:10px;">
+          <div class="stat"><div class="num" id="rCStatus" style="font-size:16px;">—</div><div class="lbl">Status</div></div>
+          <div class="stat"><div class="num" id="rCTrend" style="font-size:16px;">—</div><div class="lbl">Trend</div></div>
+          <div class="stat"><div class="num" id="rCDir" style="font-size:16px;">—</div><div class="lbl">Direction</div></div>
+          <div class="stat"><div class="num" id="rCEst">—</div><div class="lbl">Est. Crowd</div></div>
+        </div>
         <div class="zone-stats" id="zoneStats"></div>
         <div class="video-grid">
           <div class="vbox"><div class="vtitle">📹 Original</div><video id="origVid" controls></video></div>
@@ -1412,7 +1447,7 @@ code {
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Download Video
           </button>
-          <button class="btn btn-blue" style="flex:1" onclick="dlCSV()">
+          <button class="btn btn-blue" style="flex:1;margin-top:0" onclick="dlCSV()">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Download CSV
           </button>
@@ -1427,67 +1462,53 @@ code {
          TAB 2: WEBCAM
     ════════════════════════════════════════════════════ -->
     <div id="tab1" class="tab-content">
-      <p class="slabel">Live Camera Feed with Detection Overlay</p>
-
-      <div class="cc" style="margin-bottom:10px">
-        <label>Camera Source</label>
-        <select id="wcSource" onchange="onSourceChange()">
-          <option value="0">💻 This computer's webcam</option>
-          <option value="1">💻 Second local camera (index 1)</option>
-          <option value="url">📱 Phone — IP camera app (no HTTPS needed)</option>
-          <option value="push">📱 Phone — browser camera page</option>
-        </select>
-      </div>
-
-      <div class="cc" id="wcUrlBox" style="display:none;margin-bottom:10px">
-        <label>Stream URL from the phone app</label>
-        <input type="text" id="wcUrl" placeholder="http://192.168.1.42:8080/video">
-        <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.7">
-          Install <b>IP Webcam</b> (Android) or <b>DroidCam</b> on the phone, start its server, and paste the URL it displays. Both devices must be on the same Wi-Fi.<br>
-          IP Webcam → <code>http://PHONE_IP:8080/video</code> ·
-          DroidCam → <code>http://PHONE_IP:4747/video</code> ·
-          RTSP also works.
+      <p class="slabel">Multi-Camera Live Feed</p>
+      
+      <!-- ADD CAMERA FORM -->
+      <div class="card" style="margin-bottom: 20px">
+        <h3 style="margin-top:0;font-size:14px">Add Camera</h3>
+        <div style="display:flex;gap:10px;margin-bottom:10px">
+          <div class="cc" style="flex:1">
+            <label>Camera Name / ID</label>
+            <input type="text" id="camId" placeholder="e.g. Lobby_Cam">
+          </div>
+          <div class="cc" style="flex:2">
+            <label>Camera Source</label>
+            <select id="wcSource" onchange="onSourceChange()">
+              <option value="0">💻 This computer's webcam</option>
+              <option value="1">💻 Second local camera (index 1)</option>
+              <option value="url">📱 Phone — IP camera app</option>
+              <option value="push">📱 Phone — browser push</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div class="cc" id="wcPushBox" style="display:none;margin-bottom:10px">
-        <label>Open this page on the phone</label>
-        <div id="wcPhoneUrls" style="font-size:12px;color:var(--accent);line-height:2">Loading…</div>
-        <div style="font-size:11px;color:var(--text-3);margin-top:8px;line-height:1.7">
-          Tap <b>Start streaming</b> on the phone, then start the camera here.<br>
-          ⚠️ Browsers only allow camera access over HTTPS — run the server with
-          <code>python app.py --https</code> for this option.
+        <!-- URL boxes -->
+        <div class="cc" id="wcUrlBox" style="display:none;margin-bottom:10px">
+          <label>Stream URL</label>
+          <input type="text" id="wcUrl" placeholder="http://192.168.1.42:8080/video">
         </div>
-      </div>
-
-      <div class="btn-row" style="margin-bottom:12px">
-        <button class="btn btn-outline" id="btnWcTest" onclick="testSource()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Test connection
-        </button>
-      </div>
-
-      <div class="webcam-container" id="wcContainer">
-        <div class="wc-placeholder" id="wcPlaceholder">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          Camera offline
+        <div class="cc" id="wcPushBox" style="display:none;margin-bottom:10px">
+          <label>Open this page on the phone</label>
+          <div id="wcPhoneUrls" style="font-size:12px;color:var(--accent);">Loading…</div>
         </div>
-        <img id="wcImg" alt="Live Feed">
-        <div class="wc-status" id="wcStatus">● LIVE</div>
+
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-blue" id="btnWcStart" onclick="startWebcam()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Add & Start Camera
+          </button>
+          <button class="btn btn-outline" id="btnWcStopAll" onclick="stopAllCameras()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+            Stop All
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--danger);margin-top:8px" id="wcErr"></div>
       </div>
 
-      <div style="font-size:12px;color:var(--danger);margin-top:8px" id="wcErr"></div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:4px" id="wcStats"></div>
-
-      <div class="btn-row" style="margin-top:12px">
-        <button class="btn btn-blue" id="btnWcStart" onclick="startWebcam()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          Start Camera
-        </button>
-        <button class="btn btn-outline" id="btnWcStop" onclick="stopWebcam()" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-          Stop
-        </button>
+      <!-- GRID OF CAMERAS -->
+      <div id="cameraGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(350px, 1fr));gap:15px;">
+        <!-- Dynamic camera cards will be injected here -->
       </div>
     </div><!-- /tab1 -->
 
@@ -1511,8 +1532,8 @@ code {
             </select>
           </div>
           <div class="cc" style="border:none;padding:0;box-shadow:none">
-            <label>Photo (clear face shot)</label>
-            <input type="file" id="enrPhoto" accept="image/*" style="margin-top:10px;font-size:12px;color:var(--text-2);width:100%">
+            <label>Photo(s) (up to 3 clear face shots)</label>
+            <input type="file" id="enrPhoto" accept="image/*" multiple style="margin-top:10px;font-size:12px;color:var(--text-2);width:100%">
           </div>
         </div>
         <button class="btn btn-blue" style="margin-top:14px" onclick="enrollPerson()">
@@ -1525,7 +1546,7 @@ code {
       <p class="slabel">Enrolled Persons</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>#</th><th>Name</th><th>Token</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="peopleTable">
             <tr><td colspan="4" style="color:var(--text-3);padding:24px;text-align:center">No persons enrolled yet</td></tr>
           </tbody>
@@ -1738,13 +1759,10 @@ function switchTab(idx) {
   document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('active', i===idx));
   if (idx === 2) loadPeople();
   if (idx === 3) loadAlerts();
-  if (idx === 4) {
-    if (!analyticsTimer) analyticsTimer = setInterval(loadAnalytics, 2000);
-    loadAnalytics();
-  } else {
-    if (analyticsTimer) { clearInterval(analyticsTimer); analyticsTimer = null; }
-  }
+  if (idx === 4) loadAnalytics();
 }
+// Always poll analytics so it updates during video processing too
+analyticsTimer = setInterval(loadAnalytics, 2000);
 
 // ── File upload / drag-drop ─────────────────────────────────────────────────
 const dz = document.getElementById('dropZone'), fi = document.getElementById('fileInput');
@@ -1964,6 +1982,7 @@ async function startProcessing() {
   liveCanvas.style.display = 'none';
   document.getElementById('lpIdle').style.display = 'block';
   document.getElementById('lpOverlay').style.display = 'none';
+  document.getElementById('liveCrowdPanel').style.display = 'none';
 
   const fd = new FormData();
   fd.append('video', selFile);
@@ -2004,6 +2023,41 @@ async function startProcessing() {
         const badge = document.getElementById('fpsBadge');
         badge.textContent = s.fps + ' fps';
         badge.className = 'fps-badge' + (s.fps >= 5 ? ' live' : '');
+      }
+
+      // Live Crowd Analytics panel
+      if (s.crowd) {
+        const panel = document.getElementById('liveCrowdPanel');
+        panel.style.display = 'block';
+        document.getElementById('lcCurrent').textContent = s.crowd.current_count ?? 0;
+        document.getElementById('lcTracked').textContent = s.crowd.tracked_count ?? 0;
+        document.getElementById('lcPeak').textContent = s.crowd.peak_count ?? 0;
+        document.getElementById('lcAvg').textContent = s.crowd.average_count ?? 0;
+
+        const stEl = document.getElementById('lcStatus');
+        stEl.textContent = s.crowd.status || 'NORMAL';
+        if (s.crowd.status === 'CRITICAL') {
+          stEl.style.background = 'var(--danger-dim)'; stEl.style.color = 'var(--danger)';
+        } else if (s.crowd.status === 'CROWDED') {
+          stEl.style.background = 'var(--warning-dim)'; stEl.style.color = 'var(--warning)';
+        } else {
+          stEl.style.background = 'var(--success-dim)'; stEl.style.color = 'var(--success)';
+        }
+
+        const trend = s.crowd.trend || 'STABLE';
+        const trEl = document.getElementById('lcTrend');
+        trEl.textContent = (TREND_ICONS[trend] || '➡️') + ' ' + trend;
+        trEl.style.color = TREND_COLORS[trend] || 'var(--text-2)';
+
+        const dlvl = s.crowd.density_level || 'LOW';
+        const dlEl = document.getElementById('lcDensity');
+        dlEl.textContent = dlvl;
+        const dc = { LOW: ['var(--success-dim)','var(--success)'], MEDIUM: ['var(--warning-dim)','var(--warning)'], HIGH: ['rgba(220,38,38,0.08)','var(--danger)'], CRITICAL: ['var(--danger-dim)','var(--danger)'] };
+        const dcv = dc[dlvl] || dc.LOW;
+        dlEl.style.background = dcv[0]; dlEl.style.color = dcv[1];
+
+        const dir = s.crowd.dominant_direction || 'NONE';
+        document.getElementById('lcDir').textContent = (DIR_ICONS[dir] || '⏹️') + ' ' + dir;
       }
     });
 
@@ -2052,6 +2106,27 @@ async function finishJob() {
         row.innerHTML = `<span>📍 ${z.name}</span><span>peak <b>${z.peak}</b> · occupied <b>${z.total_frames_occupied}</b> frames</span>`;
         zsEl.appendChild(row);
       });
+
+      // Crowd Analytics
+      if (s.crowd) {
+        document.getElementById('rCrowdStats').style.display = 'grid';
+        
+        const st = document.getElementById('rCStatus');
+        st.textContent = s.crowd.status || 'NORMAL';
+        if (st.textContent === 'CRITICAL') st.style.color = 'var(--danger)';
+        else if (st.textContent === 'CROWDED') st.style.color = 'var(--warning)';
+        else st.style.color = 'var(--success)';
+
+        const tr = document.getElementById('rCTrend');
+        tr.textContent = (TREND_ICONS[s.crowd.trend] || '') + ' ' + (s.crowd.trend || 'STABLE');
+        tr.style.color = TREND_COLORS[s.crowd.trend] || 'var(--text-2)';
+
+        document.getElementById('rCDir').textContent = (DIR_ICONS[s.crowd.dominant_direction] || '') + ' ' + (s.crowd.dominant_direction || 'NONE');
+        
+        document.getElementById('rCEst').textContent = s.crowd.density_active ? (s.crowd.estimated_count || '—') : '—';
+      } else {
+        document.getElementById('rCrowdStats').style.display = 'none';
+      }
     }
 
     document.getElementById('origVid').src = origURL;
@@ -2159,16 +2234,23 @@ async function testSource() {
   }
 }
 
+let activeCameras = {}; // id -> {timer}
+
 async function startWebcam() {
   const err = document.getElementById('wcErr');
-  err.style.color = 'var(--text-3)';
   err.textContent = '';
+  
+  let camId = document.getElementById('camId').value.trim();
+  if (!camId) camId = 'Cam_' + Math.floor(Math.random()*1000);
+
   document.getElementById('btnWcStart').disabled = true;
   document.getElementById('btnWcStart').textContent = '⏳ Starting…';
+  
   try {
     const src = currentSource();
     if (!src) throw new Error('Enter a stream URL first.');
     const fd = new FormData();
+    fd.append('camera_id', camId);
     fd.append('conf', document.getElementById('confSlider').value / 100);
     fd.append('iou', document.getElementById('iouSlider').value / 100);
     fd.append('thickness', document.getElementById('thickSlider').value);
@@ -2176,66 +2258,115 @@ async function startWebcam() {
     fd.append('zones', JSON.stringify(zones));
     fd.append('intruder_detection', document.getElementById('intruderToggle').checked ? '1' : '0');
     fd.append('source', src);
-    const r = await fetch(`${BASE}/webcam/start`, {method:'POST', body: fd});
+    
+    const r = await fetch(`${BASE}/cameras/start`, {method:'POST', body: fd});
     const data = await r.json();
     if (!r.ok || data.error) throw new Error(data.error || 'Failed to start camera');
-    const img = document.getElementById('wcImg');
-    img.src = `${BASE}/webcam/stream?t=${Date.now()}`;
-    img.style.display = 'block';
-    document.getElementById('wcPlaceholder').style.display = 'none';
-    document.getElementById('wcStatus').style.display = 'block';
-    document.getElementById('btnWcStop').disabled = false;
-    document.getElementById('btnWcStart').textContent = '▶ Start Camera';
-    if (wcStatsTimer) clearInterval(wcStatsTimer);
-    wcStatsTimer = setInterval(pollWebcamStats, 1000);
+    
+    // Add to grid
+    renderCameraCard(camId);
+    
+    // Start polling
+    activeCameras[camId] = {
+      timer: setInterval(() => pollCameraStats(camId), 1000)
+    };
+    
   } catch(err2) {
     err.style.color = 'var(--danger)';
     err.textContent = '❌ ' + err2.message;
-    document.getElementById('btnWcStart').disabled = false;
-    document.getElementById('btnWcStart').textContent = '▶ Start Camera';
   }
+  document.getElementById('btnWcStart').disabled = false;
+  document.getElementById('btnWcStart').textContent = '▶ Add & Start Camera';
 }
 
-async function pollWebcamStats() {
+function renderCameraCard(camId) {
+  const grid = document.getElementById('cameraGrid');
+  if (document.getElementById(`camCard-${camId}`)) return;
+  
+  const div = document.createElement('div');
+  div.id = `camCard-${camId}`;
+  div.className = 'card';
+  div.style.padding = '10px';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h4 style="margin:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${camId}</h4>
+      <div>
+        <button class="btn btn-blue" style="padding:4px 8px;font-size:11px;margin:0;flex-shrink:0" onclick="openLiveConfig('${camId}')">Zones & Alerts</button>
+        <button class="btn btn-outline" style="padding:4px 8px;font-size:11px;margin:0 0 0 5px;flex-shrink:0" onclick="stopCamera('${camId}')">Stop</button>
+      </div>
+    </div>
+    <div class="webcam-container" style="height:220px;background:#000;position:relative;cursor:pointer" onclick="openFullscreen('${camId}')" title="Click to expand">
+      <img src="${BASE}/cameras/${camId}/stream?t=${Date.now()}" style="display:block;width:100%;height:100%;object-fit:contain">
+      <div class="wc-status" style="display:block">&#9679; LIVE</div>
+      <div style="position:absolute;top:7px;right:7px;background:rgba(0,0,0,0.55);border-radius:5px;padding:4px 6px;pointer-events:none">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" stroke="#fff" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      </div>
+    </div>
+    <div id="stats-${camId}" style="font-size:11px;color:var(--text-3);margin-top:8px">Loading stats...</div>
+  `;
+  grid.appendChild(div);
+}
+
+async function pollCameraStats(camId) {
   try {
-    const r = await fetch(`${BASE}/webcam/status`);
+    const r = await fetch(`${BASE}/cameras/${camId}/status`);
     const d = await r.json();
     if (!d.running) {
-      document.getElementById('wcStats').textContent = '';
-      if (d.error) {
-        const e = document.getElementById('wcErr');
-        e.style.color = 'var(--danger)';
-        e.textContent = '❌ ' + d.error;
-      }
-      stopWebcam();
+      stopCamera(camId);
       return;
     }
-    document.getElementById('wcStats').textContent =
+    document.getElementById(`stats-${camId}`).textContent = 
       `display ${d.display_fps ?? 0} fps · detection ${d.infer_fps ?? 0} fps · ${d.tracks ?? 0} tracked`;
-  } catch (e) { /* transient */ }
+  } catch (e) {}
 }
 
-async function stopWebcam() {
-  if (wcStatsTimer) { clearInterval(wcStatsTimer); wcStatsTimer = null; }
-  await fetch(`${BASE}/webcam/stop`, {method:'POST'});
-  const img = document.getElementById('wcImg');
-  img.src = ''; img.style.display = 'none';
-  document.getElementById('wcPlaceholder').style.display = 'block';
-  document.getElementById('wcStatus').style.display = 'none';
-  document.getElementById('wcStats').textContent = '';
-  document.getElementById('btnWcStart').disabled = false;
-  document.getElementById('btnWcStop').disabled  = true;
+async function stopCamera(camId) {
+  if (activeCameras[camId]) {
+    clearInterval(activeCameras[camId].timer);
+    delete activeCameras[camId];
+  }
+  await fetch(`${BASE}/cameras/${camId}/stop`, {method:'POST'});
+  const el = document.getElementById(`camCard-${camId}`);
+  if (el) el.remove();
 }
+
+async function stopAllCameras() {
+  for (const camId in activeCameras) clearInterval(activeCameras[camId].timer);
+  activeCameras = {};
+  await fetch(`${BASE}/cameras/stop-all`, {method:'POST'});
+  document.getElementById('cameraGrid').innerHTML = '';
+}
+
+// Check existing cameras on load
+async function loadActiveCameras() {
+  try {
+    const r = await fetch(`${BASE}/cameras`);
+    const d = await r.json();
+    for (const camId of (d.cameras || [])) {
+      if (!activeCameras[camId]) {
+        renderCameraCard(camId);
+        activeCameras[camId] = { timer: setInterval(() => pollCameraStats(camId), 1000) };
+      }
+    }
+  } catch (e) {}
+}
+setTimeout(loadActiveCameras, 500);
 
 // ── Enroll ──────────────────────────────────────────────────────────────────
 async function enrollPerson() {
   const name   = document.getElementById('enrName').value.trim();
   const status = document.getElementById('enrStatus').value;
-  const file   = document.getElementById('enrPhoto').files[0];
+  const files  = document.getElementById('enrPhoto').files;
   const msgEl  = document.getElementById('enrMsg');
-  if (!name || !file) { msgEl.style.color='var(--danger)'; msgEl.textContent='⚠️ Name and photo are required.'; return; }
+  if (!name || files.length === 0) { msgEl.style.color='var(--danger)'; msgEl.textContent='⚠️ Name and photo are required.'; return; }
+  if (files.length > 3) { msgEl.style.color='var(--danger)'; msgEl.textContent='⚠️ Please select up to 3 photos maximum.'; return; }
+  
   msgEl.style.color='var(--text-3)'; msgEl.textContent='Enrolling…';
-  const fd = new FormData(); fd.append('name',name); fd.append('status',status); fd.append('photo',file);
+  const fd = new FormData(); fd.append('name',name); fd.append('status',status);
+  for(let i=0; i<files.length; i++) {
+    fd.append('photo', files[i]);
+  }
+  
   try {
     const r = await fetch(`${BASE}/enroll`, {method:'POST', body:fd});
     const d = await r.json();
@@ -2259,9 +2390,25 @@ async function loadPeople() {
     <tr>
       <td style="color:var(--text-3);font-variant-numeric:tabular-nums">${i+1}</td>
       <td style="font-weight:600;color:var(--text)">${p.name}</td>
+      <td style="font-size:11px;font-family:monospace;color:var(--text-3)">${p.token || '—'}</td>
       <td><span class="${p.status==='blocklisted'?'badge-block':'badge-auth'}">${p.status==='blocklisted'?'🚫 Blocklisted':'✅ Authorized'}</span></td>
-      <td><button class="btn btn-red" style="width:auto;padding:5px 12px;font-size:12px" onclick="deletePerson(${p.id})">Delete</button></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn ${p.status==='blocklisted'?'btn-blue':'btn-outline'}" style="width:auto;padding:5px 12px;font-size:12px" onclick="toggleStatus(${p.id}, '${p.status}')">${p.status==='blocklisted'?'Unblock':'Block'}</button>
+          <button class="btn btn-red" style="width:auto;padding:5px 12px;font-size:12px" onclick="deletePerson(${p.id})">Delete</button>
+        </div>
+      </td>
     </tr>`).join('');
+}
+
+async function toggleStatus(id, currentStatus) {
+  const newStatus = currentStatus === 'blocklisted' ? 'authorized' : 'blocklisted';
+  await fetch(`${BASE}/people/${id}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: newStatus })
+  });
+  loadPeople();
 }
 
 async function deletePerson(id) {
@@ -2350,7 +2497,7 @@ async function loadAlerts() {
   }
   const emptyDiv = document.createElement('div');
   emptyDiv.id = 'alertEmpty'; emptyDiv.style.display = 'none'; feed.appendChild(emptyDiv);
-  alerts.forEach(prependAlert);
+  alerts.reverse().forEach(prependAlert);
 }
 
 async function clearAlerts() {
@@ -2383,9 +2530,52 @@ function _applyDensityBadge(badge, text, level) {
 
 async function loadAnalytics() {
   try {
-    const r = await fetch(`${BASE}/analytics/crowd`);
-    if (!r.ok) return;
-    const d = await r.json();
+    let camId = 'LIVE';
+    let hasCamera = false;
+    try {
+      const cr = await fetch(`${BASE}/cameras`);
+      if (cr.ok) {
+        const cd = await cr.json();
+        if (cd.cameras && cd.cameras.length) {
+          camId = cd.cameras[0];
+          hasCamera = true;
+        }
+      }
+    } catch(e) {}
+
+    let d = null;
+    let isVideo = false;
+
+    // First check if a video upload is currently processing
+    if (typeof busy !== 'undefined' && busy && typeof jobId !== 'undefined' && jobId) {
+      try {
+        const sr = await fetch(`${BASE}/process/status/${jobId}`);
+        if (sr.ok) {
+          const st = await sr.json();
+          if (st.crowd) {
+            d = st.crowd;
+            isVideo = true;
+          }
+        }
+      } catch(e) {}
+    }
+
+    // If no video is processing, fallback to live camera
+    if (!d && hasCamera) {
+      const r = await fetch(`${BASE}/analytics/crowd/${camId}`);
+      if (r.ok) d = await r.json();
+    }
+
+    if (!d) {
+      document.getElementById('cCurrent').textContent = '—';
+      document.getElementById('cTracked').textContent = '—';
+      document.getElementById('cEstimated').textContent = '—';
+      document.getElementById('cPeak').textContent = '—';
+      document.getElementById('cAverage').textContent = '—';
+      document.getElementById('cMin').textContent = '—';
+      document.getElementById('crowdStatusText').textContent = 'No Active Camera';
+      return;
+    }
 
     // ── Stat cards ────────────────────────────────────────────────────
     document.getElementById('cCurrent').textContent    = d.current_count ?? '—';
@@ -2530,6 +2720,239 @@ async function doResetAnalytics() {
     }
   } catch(e) {}
 }
+</script>
+
+<!-- Live Config Modal -->
+<div id="liveConfigModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div class="card" style="width:700px;max-width:90vw;position:relative;display:flex;flex-direction:column;gap:15px;background:#1a1a1a;border:1px solid #333;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+    <h3 style="margin:0;color:#fff;font-size:16px;" id="lcTitle">Camera Config</h3>
+    <div style="position:relative;width:100%;background:#000;border-radius:6px;overflow:hidden;" id="lcWrap">
+      <img id="lcImg" style="width:100%;height:auto;display:block;pointer-events:none;min-height:200px;">
+      <canvas id="lcCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;"></canvas>
+    </div>
+    <!-- Zone list with delete buttons -->
+    <div id="lcZoneList" style="display:flex;flex-direction:column;gap:6px;max-height:120px;overflow-y:auto;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+       <div style="display:flex;gap:8px;">
+         <button class="btn btn-outline" style="margin:0;font-size:11px" onclick="lcUndo()">Undo Point</button>
+         <button class="btn btn-blue" style="margin:0;font-size:11px" onclick="lcFinishZone()">Finish Zone</button>
+         <button class="btn btn-outline" style="margin:0;font-size:11px;color:#f87171;border-color:#f87171" onclick="lcClear()">Clear All</button>
+       </div>
+       <div>
+         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#eee;font-size:13px;">
+           <input type="checkbox" id="lcIntruder" checked> Intruder Detection
+         </label>
+       </div>
+    </div>
+    <p style="color:#666;font-size:11px;margin:0">Click to place points · Click 1st point to close zone · Right-click zone to delete · Zones can overlap (person tracked in all matching zones)</p>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:15px;border-top:1px solid #333;">
+       <button class="btn btn-outline" style="margin:0" onclick="closeLiveConfig()">Cancel</button>
+       <button class="btn btn-green" style="margin:0" onclick="saveLiveConfig()">Save to Camera</button>
+    </div>
+  </div>
+</div>
+
+</script>
+
+<!-- ── Fullscreen Camera Modal ─────────────────────────────────────── -->
+<div id="fsModal" style="display:none;position:fixed;inset:0;background:#000;z-index:10000;flex-direction:column;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(255,255,255,0.06);flex-shrink:0;">
+    <span id="fsTitle" style="color:#fff;font-size:15px;font-weight:600;">Camera Feed</span>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span style="background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;">&#9679; LIVE</span>
+      <button onclick="closeFullscreen()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;">&#x2715; Close (Esc)</button>
+    </div>
+  </div>
+  <img id="fsImg" style="flex:1;width:100%;object-fit:contain;display:block;min-height:0;">
+</div>
+<script>
+window.openFullscreen = function(camId) {
+  document.getElementById('fsTitle').textContent = camId + ' — Live Feed';
+  document.getElementById('fsImg').src = `${BASE}/cameras/${camId}/stream?t=${Date.now()}`;
+  document.getElementById('fsModal').style.display = 'flex';
+  document.addEventListener('keydown', _fsKey);
+};
+window.closeFullscreen = function() {
+  document.getElementById('fsModal').style.display = 'none';
+  document.getElementById('fsImg').src = '';
+  document.removeEventListener('keydown', _fsKey);
+};
+function _fsKey(e) { if (e.key === 'Escape') closeFullscreen(); }
+</script>
+
+<script>
+let lcCamId = null;
+let lcZones = [];
+let lcCurrentPts = [];
+let lcImgW = 640;
+let lcImgH = 480;
+const lcCanvas = document.getElementById('lcCanvas');
+const lcCtx = lcCanvas.getContext('2d');
+
+const ZONE_COLORS = ['#00dcff','#ff6b35','#a855f7','#22c55e','#f59e0b','#ec4899'];
+
+window.openLiveConfig = async function(camId) {
+  lcCamId = camId;
+  document.getElementById('lcTitle').textContent = `Zone & Alert Config: ${camId}`;
+  document.getElementById('liveConfigModal').style.display = 'flex';
+  lcZones = []; lcCurrentPts = [];
+
+  // Load existing zones from the server so deletions work correctly
+  try {
+    const zr = await fetch(`${BASE}/cameras/${camId}/zones`);
+    if (zr.ok) {
+      const zd = await zr.json();
+      document.getElementById('lcIntruder').checked = zd.intruder_detection !== false;
+      // zones_input is stored as normalized [0-1] fractions; convert to pixels after image loads
+      window._lcPendingZones = zd.zones || [];
+    }
+  } catch(e) { window._lcPendingZones = []; }
+
+  const img = document.getElementById('lcImg');
+  img.onload = () => {
+     lcImgW = img.naturalWidth || 640;
+     lcImgH = img.naturalHeight || 480;
+     lcCanvas.width = lcCanvas.clientWidth;
+     lcCanvas.height = lcCanvas.clientHeight;
+     // Convert normalized zones to pixel coordinates
+     if (window._lcPendingZones && window._lcPendingZones.length) {
+       lcZones = window._lcPendingZones.map((z, i) => ({
+         name: z.name || ('Zone ' + String.fromCharCode(65+i)),
+         color: ZONE_COLORS[i % ZONE_COLORS.length],
+         points: z.points.map(p => [p[0] * lcImgW, p[1] * lcImgH])
+       }));
+     }
+     lcDraw(); lcRenderList();
+  };
+  img.src = `${BASE}/cameras/${camId}/snapshot?t=${Date.now()}`;
+};
+
+window.closeLiveConfig = function() {
+  document.getElementById('liveConfigModal').style.display = 'none';
+};
+
+lcCanvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const r = lcCanvas.getBoundingClientRect();
+  const nx = (e.clientX - r.left) * (lcImgW / r.width);
+  const ny = (e.clientY - r.top) * (lcImgH / r.height);
+  // Find which zone center was right-clicked
+  for (let i = lcZones.length - 1; i >= 0; i--) {
+    const z = lcZones[i];
+    const cx = z.points.reduce((s,p)=>s+p[0],0)/z.points.length;
+    const cy = z.points.reduce((s,p)=>s+p[1],0)/z.points.length;
+    const dx = nx - cx, dy = ny - cy;
+    if (dx*dx + dy*dy < 3600) { lcDeleteZone(i); return; }
+  }
+});
+
+lcCanvas.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  const r = lcCanvas.getBoundingClientRect();
+  const nx = (e.clientX - r.left) * (lcImgW / r.width);
+  const ny = (e.clientY - r.top) * (lcImgH / r.height);
+  if (lcCurrentPts.length >= 3) {
+    const dx = nx - lcCurrentPts[0][0], dy = ny - lcCurrentPts[0][1];
+    if (dx*dx + dy*dy < 400) { lcFinishZone(); return; }
+  }
+  lcCurrentPts.push([nx, ny]);
+  lcDraw();
+});
+
+window.lcFinishZone = function() {
+  if (lcCurrentPts.length >= 3) {
+    const color = ZONE_COLORS[lcZones.length % ZONE_COLORS.length];
+    lcZones.push({name: 'Zone ' + String.fromCharCode(65 + lcZones.length), points: lcCurrentPts, color});
+    lcRenderList();
+  }
+  lcCurrentPts = [];
+  lcDraw();
+};
+
+window.lcUndo = function() {
+  if (lcCurrentPts.length) { lcCurrentPts.pop(); lcDraw(); }
+};
+
+window.lcDeleteZone = function(idx) {
+  lcZones.splice(idx, 1);
+  // Re-label remaining zones
+  lcZones.forEach((z, i) => { if (z.name.startsWith('Zone ')) z.name = 'Zone ' + String.fromCharCode(65 + i); });
+  lcDraw(); lcRenderList();
+};
+
+window.lcRenameZone = function(idx, newName) {
+  if (newName.trim()) lcZones[idx].name = newName.trim();
+};
+
+window.lcClear = function() { lcZones = []; lcCurrentPts = []; lcDraw(); lcRenderList(); };
+
+function lcRenderList() {
+  const el = document.getElementById('lcZoneList');
+  if (!el) return;
+  if (!lcZones.length) { el.innerHTML = '<p style="color:#555;font-size:11px;margin:0">No zones drawn yet — click on the camera image to start</p>'; return; }
+  el.innerHTML = lcZones.map((z, i) => `
+    <div style="display:flex;align-items:center;gap:8px;background:#2a2a2a;padding:6px 10px;border-radius:6px;border-left:3px solid ${z.color||'#00dcff'}">
+      <span style="color:${z.color||'#00dcff'};font-size:12px;font-weight:700">●</span>
+      <input value="${z.name}" onchange="lcRenameZone(${i}, this.value)" style="background:transparent;border:none;border-bottom:1px solid #444;color:#eee;font-size:12px;width:120px;outline:none;padding:0">
+      <span style="color:#666;font-size:11px;flex:1">${z.points.length} pts</span>
+      <button onclick="lcDeleteZone(${i})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:14px;padding:0 4px" title="Delete zone">✕</button>
+    </div>`).join('');
+}
+
+function lcDraw() {
+  lcCtx.clearRect(0, 0, lcCanvas.width, lcCanvas.height);
+  const r = lcCanvas.getBoundingClientRect();
+  if (!r.width) return;
+  const sx = r.width / lcImgW, sy = r.height / lcImgH;
+  lcCtx.lineWidth = 2;
+  lcZones.forEach((z, zi) => {
+    const col = z.color || ZONE_COLORS[zi % ZONE_COLORS.length];
+    lcCtx.strokeStyle = col;
+    lcCtx.fillStyle = col.replace(')', ',0.15)').replace('rgb','rgba');
+    lcCtx.beginPath();
+    z.points.forEach((p, i) => { const x=p[0]*sx, y=p[1]*sy; i?lcCtx.lineTo(x,y):lcCtx.moveTo(x,y); });
+    lcCtx.closePath(); lcCtx.fill(); lcCtx.stroke();
+    lcCtx.fillStyle = col;
+    lcCtx.font = 'bold 13px sans-serif';
+    const cx = z.points.reduce((s,p)=>s+p[0],0)/z.points.length*sx;
+    const cy = z.points.reduce((s,p)=>s+p[1],0)/z.points.length*sy;
+    lcCtx.fillText(z.name, cx - 20, cy);
+    // Draw close-dot on first point
+    lcCtx.beginPath(); lcCtx.arc(z.points[0][0]*sx, z.points[0][1]*sy, 5, 0, Math.PI*2);
+    lcCtx.fillStyle = col; lcCtx.fill();
+  });
+  if (lcCurrentPts.length) {
+    lcCtx.strokeStyle = '#facc15'; lcCtx.lineWidth = 2;
+    lcCtx.beginPath();
+    lcCurrentPts.forEach((p, i) => { const x=p[0]*sx, y=p[1]*sy; i?lcCtx.lineTo(x,y):lcCtx.moveTo(x,y); });
+    lcCtx.stroke();
+    lcCurrentPts.forEach((p, i) => {
+      lcCtx.beginPath(); lcCtx.arc(p[0]*sx, p[1]*sy, i===0?6:4, 0, Math.PI*2);
+      lcCtx.fillStyle = i===0?'#facc15':'#fde047'; lcCtx.fill();
+    });
+    // Draw snap hint on first point
+    if (lcCurrentPts.length >= 3) {
+      lcCtx.beginPath(); lcCtx.arc(lcCurrentPts[0][0]*sx, lcCurrentPts[0][1]*sy, 12, 0, Math.PI*2);
+      lcCtx.strokeStyle = 'rgba(250,204,21,0.4)'; lcCtx.stroke();
+    }
+  }
+}
+
+window.saveLiveConfig = async function() {
+  const fd = new FormData();
+  const normZones = lcZones.map(z => ({
+    name: z.name,
+    points: z.points.map(p => [p[0] / lcImgW, p[1] / lcImgH])
+  }));
+  fd.append('zones', JSON.stringify(normZones));
+  fd.append('intruder_detection', document.getElementById('lcIntruder').checked ? '1' : '0');
+  try {
+    await fetch(`${BASE}/cameras/${lcCamId}/config`, {method:'POST', body: fd});
+    closeLiveConfig();
+  } catch(e) {
+    alert('Failed to save config: ' + e.message);
+  }
+};
 </script>
 </body>
 </html>

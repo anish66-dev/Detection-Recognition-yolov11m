@@ -10,39 +10,15 @@ import queue
 import threading
 
 import database
-from analytics.crowd_counter    import CrowdCounter
-from analytics.crowd_monitor    import CrowdMonitor
-from analytics.direction_analyzer import DirectionAnalyzer
-
-# ── Crowd Analytics ──────────────────────────────────────────────────────────
-
-_crowd_counter    = CrowdCounter()
-_crowd_monitor    = CrowdMonitor()
-_direction_analyzer = DirectionAnalyzer()
-
-
 def reset_analytics():
     """
     Clear all accumulated session analytics and restart from a clean state.
-
-    What is reset:
-      - headcount history (current / peak / avg / min / estimated)
-      - crowd trend history
-      - crowd direction history
-      - zone statistics
-      - crowd events log
-      - density estimator smoothing state
-
-    What is NOT reset:
-      - model weights / configuration
-      - alert database records
-      - enrolled faces
-      - live session / video job state
-      - application configuration
     """
-    _crowd_counter.reset()
-    _crowd_monitor.reset()
-    _direction_analyzer.reset()
+    with _session_lock:
+        for session in _sessions.values():
+            session.crowd_counter.reset()
+            session.crowd_monitor.reset()
+            session.direction_analyzer.reset()
 
 
 # ── Video processing jobs ────────────────────────────────────────────────────
@@ -58,14 +34,18 @@ _alert_subscribers = []
 # ── Enrolled faces cache ─────────────────────────────────────────────────────
 
 _enrolled_faces_cache = []
-
+zone_authorizations_cache = {}
 
 def refresh_faces_cache():
     global _enrolled_faces_cache
     _enrolled_faces_cache = database.get_all_embeddings()
-
+    
+def refresh_zone_authorizations_cache():
+    global zone_authorizations_cache
+    zone_authorizations_cache = database.get_all_zone_authorizations()
 
 refresh_faces_cache()
+refresh_zone_authorizations_cache()
 
 
 def has_enrollment():
@@ -91,14 +71,34 @@ def make_alert_sink(job_id, frame_ref):
     current frame number without rebuilding the sink every frame.
     """
     def sink(name, similarity, alert_type):
-        alert = database.save_alert(name, similarity, job_id, frame_ref[0],
+        display_name = f"[{job_id}] {name}"
+        alert = database.save_alert(display_name, similarity, job_id, frame_ref[0],
                                     alert_type=alert_type)
         push_alert_to_subscribers(alert)
         return alert
     return sink
 
 
-# ── Live session state ────────────────────────────────────────────────────────
-
-_session = None
+_sessions = {}
 _session_lock = threading.Lock()
+
+def get_session(cam_id):
+    with _session_lock:
+        return _sessions.get(cam_id)
+
+def add_session(cam_id, session):
+    with _session_lock:
+        _sessions[cam_id] = session
+
+def remove_session(cam_id):
+    with _session_lock:
+        if cam_id in _sessions:
+            del _sessions[cam_id]
+
+def all_sessions():
+    with _session_lock:
+        return list(_sessions.values())
+
+def active_camera_ids():
+    with _session_lock:
+        return list(_sessions.keys())

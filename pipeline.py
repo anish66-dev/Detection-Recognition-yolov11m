@@ -143,6 +143,7 @@ def _load_models():
         try:
             print("[INFO] Loading YOLOv11m...")
             _yolo = YOLO("yolo11mtrained.pt")
+            _yolo.to(get_device())
         except Exception as e:
             print(f"[ERROR] Failed to load YOLO model: {e}")
 
@@ -256,6 +257,29 @@ def detect_faces_scrfd(img):
 
     bboxes, kpss = _det.detect(img, max_num=0, metric="default")
     return bboxes, kpss
+
+
+# ── Stage 2.5: Face Quality Gate ────────────────────────────────────────────────
+
+def assess_face_quality(face_crop):
+    """
+    Check if a face crop is good enough for recognition.
+    Returns (passed: bool, reason: str).
+    """
+    if face_crop is None or face_crop.size == 0:
+        return False, "empty"
+    
+    h, w = face_crop.shape[:2]
+    if h * w < 2500:
+        return False, "too small"
+        
+    import cv2
+    gray = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
+    variance = cv2.Laplacian(gray, cv2.CV_64F).var()
+    if variance < 80:
+        return False, "blurry"
+        
+    return True, "ok"
 
 
 # ── Stage 3: Alignment ────────────────────────────────────────────────────────
@@ -393,6 +417,17 @@ def detect_faces(frame):
     faces = []
     for i in range(len(bboxes)):
         try:
+            x1, y1, x2, y2 = [int(v) for v in bboxes[i][:4]]
+            conf = float(bboxes[i][4]) if len(bboxes[i]) > 4 else 1.0
+            
+            if conf < 0.5:
+                continue
+                
+            face_crop = frame[max(0, y1):max(0, y2), max(0, x1):max(0, x2)]
+            passed, reason = assess_face_quality(face_crop)
+            if not passed:
+                continue
+
             aligned = align_face(frame, kpss[i])
             emb = get_embedding_from_aligned(aligned)
         except Exception:

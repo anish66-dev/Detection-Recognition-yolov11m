@@ -11,10 +11,15 @@ import app_state
 bp = Blueprint("analytics", __name__)
 
 
-@bp.route("/analytics/crowd", methods=["GET"])
-def crowd_stats():
-    stats  = app_state._crowd_counter.get_stats()
-    status = app_state._crowd_monitor.get_status()
+@bp.route("/analytics/crowd", defaults={"camera_id": "LIVE"}, methods=["GET"])
+@bp.route("/analytics/crowd/<camera_id>", methods=["GET"])
+def crowd_stats(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is None:
+        return jsonify({"error": "Camera not found or not running"}), 404
+
+    stats  = session.crowd_counter.get_stats()
+    status = session.crowd_monitor.get_status()
 
     # Merge monitor state into stats dict
     stats["status"]             = status["status"]

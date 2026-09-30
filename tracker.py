@@ -31,15 +31,15 @@ from config import TRACK_MAX_MISSES, TRACK_MIN_HITS
 from collections import deque
 
 # Association / lifecycle defaults
-IOU_MATCH_THRESH = 0.30   # below this, a detection cannot continue a track
+IOU_MATCH_THRESH = 0.15   # lowered for fast movement at low detection fps
 MAX_MISSES       = TRACK_MAX_MISSES
 MIN_HITS         = TRACK_MIN_HITS
 EMA_ALPHA        = 0.6    # box smoothing: higher = more responsive, less smooth
 VEL_ALPHA        = 0.4    # velocity smoothing
-MAX_COAST_SECS   = 0.5    # never extrapolate further than this into the future
+MAX_COAST_SECS   = 0.15   # never extrapolate further than this into the future
 
 # Identity voting
-IDENTITY_WINDOW  = 9      # recognition observations retained per track
+IDENTITY_WINDOW  = 6      # recognition observations retained per track (smaller = faster expiry)
 IDENTITY_MIN_VOTES = 3    # votes needed before a label is committed
 
 
@@ -72,23 +72,23 @@ def containment(inner, outer):
     return inter / area if area > 0 else 0.0
 
 
-def merge_duplicate_boxes(boxes, iou_thresh=0.75, contain_thresh=0.85):
+def merge_duplicate_boxes(boxes, iou_thresh=0.85, contain_thresh=0.95):
     """
     Class-agnostic pass that collapses duplicate person boxes.
-
+    
     YOLO's built-in NMS runs per detection head and, at a low confidence
     threshold with a high NMS IoU, still lets two or three boxes survive on the
     same body. Those duplicates are what makes a single person appear as both a
     plain "Person" box and a magenta "INTRUDER" box at the same time.
-
+    
     A box is dropped when it overlaps a higher-confidence box beyond
     ``iou_thresh``, or when it is almost entirely swallowed by one
     (``contain_thresh``) — the nested case IoU alone misses.
-
+    
     Args:
         boxes: iterable of [x1, y1, x2, y2, conf, ...]; extra trailing fields
             are preserved on the survivors.
-
+    
     Returns:
         Filtered list, ordered by descending confidence.
     """
@@ -97,7 +97,8 @@ def merge_duplicate_boxes(boxes, iou_thresh=0.75, contain_thresh=0.85):
     for box in ordered:
         redundant = False
         for k in kept:
-            if iou(box, k) >= iou_thresh or containment(box, k) >= contain_thresh:
+            # Check both directions for containment so big box swallows small and small swallows big
+            if iou(box, k) >= iou_thresh or containment(box, k) >= contain_thresh or containment(k, box) >= contain_thresh:
                 redundant = True
                 break
         if not redundant:
@@ -129,6 +130,7 @@ class Track:
         self.zone = None
         self.identity_name = None
         self.identity_status = None
+        self.identity_id = None
         self.identity_sim = 0.0
         self.identity_state = "unseen"  # unseen | known | unknown | uncertain
 
@@ -175,7 +177,12 @@ class Track:
 
         Extrapolation is capped at MAX_COAST_SECS; past that a stale track would
         sail off the frame rather than simply sitting still.
+
+        If the track is coasting (missed > 0), return the last known position
+        without extrapolation to avoid ghost boxes drifting.
         """
+        if self.misses > 0:
+            return list(self.bbox)
         dt = min(max(0.0, now - self.updated_at), MAX_COAST_SECS)
         if dt <= 0:
             return list(self.bbox)
@@ -183,22 +190,23 @@ class Track:
 
     # ── identity voting ──────────────────────────────────────────────────────
 
-    def observe_identity(self, name, status, sim, state):
+    def observe_identity(self, name, status, sim, state, person_id=None):
         """
         Record one recognition observation. ``state`` is 'known', 'unknown' or
         'uncertain'; uncertain observations are stored but never win a vote,
         which is what gives recognition its hysteresis band.
         """
-        self._votes.append((name, status, float(sim), state))
+        self._votes.append((name, status, float(sim), state, person_id))
         self._commit_identity()
 
     def _commit_identity(self):
         knowns, unknowns = {}, 0
         best_sim = {}
-        for name, status, sim, state in self._votes:
+        for name, status, sim, state, person_id in self._votes:
             if state == "known" and name:
-                knowns[(name, status)] = knowns.get((name, status), 0) + 1
-                best_sim[(name, status)] = max(best_sim.get((name, status), 0.0), sim)
+                key = (name, status, person_id)
+                knowns[key] = knowns.get(key, 0) + 1
+                best_sim[key] = max(best_sim.get(key, 0.0), sim)
             elif state == "unknown":
                 unknowns += 1
 
@@ -208,11 +216,11 @@ class Track:
                 top_key, top_votes = key, votes
 
         if top_key and top_votes >= IDENTITY_MIN_VOTES:
-            self.identity_name, self.identity_status = top_key
+            self.identity_name, self.identity_status, self.identity_id = top_key
             self.identity_sim = best_sim[top_key]
             self.identity_state = "known"
         elif unknowns >= IDENTITY_MIN_VOTES and top_votes < IDENTITY_MIN_VOTES:
-            self.identity_name, self.identity_status = None, None
+            self.identity_name, self.identity_status, self.identity_id = None, None, None
             self.identity_sim = 0.0
             self.identity_state = "unknown"
         else:
@@ -230,6 +238,7 @@ class Track:
             "zone": self.zone,
             "identity_name": self.identity_name,
             "identity_status": self.identity_status,
+            "identity_id": getattr(self, 'identity_id', None),
             "identity_sim": self.identity_sim,
             "identity_state": self.identity_state,
             "confirmed": self.confirmed,
@@ -298,10 +307,14 @@ class Tracker:
         return self.tracks
 
     def active(self, include_unconfirmed=False):
-        """Tracks worth drawing: confirmed, and not currently coasting too long."""
+        """Tracks worth drawing: confirmed and actively matched (misses==0).
+        
+        Coasting tracks (misses > 0) are kept alive internally for re-association
+        but are NOT rendered, which eliminates ghost boxes entirely.
+        """
         return [
             t for t in self.tracks
-            if (t.confirmed or include_unconfirmed) and t.misses <= self.max_misses
+            if (t.confirmed or include_unconfirmed) and t.misses == 0
         ]
 
     def reset(self):

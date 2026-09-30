@@ -28,12 +28,16 @@ from geometry import normalize_zones
 from analysis import analyse_frame, render_frame, count_zones, overlay_hud
 from config import LIVE_DISPLAY_FPS, LIVE_JPEG_QUALITY, RECOG_STRIDE_LIVE
 from app_state import has_enrollment, make_alert_sink
+from analytics.crowd_counter import CrowdCounter
+from analytics.crowd_monitor import CrowdMonitor
+from analytics.direction_analyzer import DirectionAnalyzer
 
 
 class LiveSession:
 
-    def __init__(self, source_spec, conf, iou, thickness, font_scale,
+    def __init__(self, camera_id, source_spec, conf, iou, thickness, font_scale,
                  zones_input, intruder_detection):
+        self.camera_id = camera_id
         self.source = CameraSource(source_spec)
         self.conf = conf
         self.iou = iou
@@ -51,7 +55,11 @@ class LiveSession:
         # iterates it, so every access has to be guarded.
         self._trk_lock = threading.Lock()
         self._frame_ref = [0]
-        self.engine = AlertEngine(make_alert_sink("LIVE", self._frame_ref))
+        self.engine = AlertEngine(make_alert_sink(self.camera_id, self._frame_ref))
+
+        self.crowd_counter = CrowdCounter()
+        self.crowd_monitor = CrowdMonitor()
+        self.direction_analyzer = DirectionAnalyzer()
 
         self._raw_lock = threading.Lock()
         self._raw = None          # newest captured frame
@@ -74,12 +82,18 @@ class LiveSession:
         while self.running:
             ok, frame = self.source.read()
             if not ok:
-                if self.source.kind == "push":
-                    # Phone hasn't sent anything yet, or has paused. Not fatal.
+                if self.source.kind in ("push", "url"):
+                    # Phone hasn't sent anything yet, or URL is reconnecting. Not fatal.
                     time.sleep(0.05)
                     continue
                 self.error = self.source.error or "Camera stopped sending frames."
                 break
+                
+            # If the phone sends 4K, it chokes YOLO and JPEG encoding. Cap at 720p/1080p-ish.
+            if frame.shape[1] > 1280:
+                scale = 1280 / frame.shape[1]
+                frame = cv2.resize(frame, (1280, int(frame.shape[0] * scale)))
+                
             with self._raw_lock:
                 self._raw = frame
                 self._raw_seq += 1
@@ -110,10 +124,19 @@ class LiveSession:
                 self.zones = normalize_zones(self.zones_input, w, h)
 
             now = time.time()
+            do_recog = (frame_num % RECOG_STRIDE_LIVE == 0 or frame_num == 1)
+            
+            # 1. Heavy ML Inference (Releases GIL, runs entirely outside the tracking lock)
+            pre_det = pipeline.detect_persons(frame, self.conf, self.iou)
+            pre_faces = pipeline.detect_faces(frame) if do_recog else None
+
+            # 2. Fast tracking & state update (Inside the lock)
             with self._trk_lock:
                 records, detections = analyse_frame(
                     frame, self.tracker, self.conf, self.iou, self.zones, now,
-                    do_recognition=(frame_num % RECOG_STRIDE_LIVE == 0 or frame_num == 1),
+                    do_recognition=do_recog,
+                    precomputed_detections=pre_det,
+                    precomputed_faces=pre_faces
                 )
             self.engine.evaluate(records, now,
                                  intruder_detection=self.intruder_detection,
@@ -121,16 +144,16 @@ class LiveSession:
 
             # Pass raw detections (already computed by analyse_frame — no second
             # YOLO run) and frame shape to the density estimator.
-            stats = app_state._crowd_counter.update(
+            stats = self.crowd_counter.update(
                 records, self.zones, now,
                 detections=detections,
                 frame_shape=frame.shape,
             )
 
             # Direction analysis uses the tracker velocity vectors directly.
-            direction = app_state._direction_analyzer.update(self.tracker.tracks)
+            direction = self.direction_analyzer.update(self.tracker.tracks)
 
-            events = app_state._crowd_monitor.evaluate(
+            events = self.crowd_monitor.evaluate(
                 stats["current_count"], stats["zones"], now,
                 dominant_direction=direction,
             )
@@ -140,10 +163,24 @@ class LiveSession:
                     msg = f"Crowd level changed to {event['new_state']} ({event['count']} people)"
                 else:
                     msg = f"Zone {event['zone']} changed to {event['new_state']} ({event['count']} people)"
-                app_state.push_alert_to_subscribers({
-                    "id": 0, "type": "crowd", "name": msg,
-                    "sim": 0, "timestamp": now, "time_str": "LIVE", "frame_num": frame_num
-                })
+                
+                if event["new_state"] in ("CROWDED", "CRITICAL"):
+                    import database
+                    alert_dict = database.save_alert(
+                        person_name=msg,
+                        similarity=0.0,
+                        job_id=self.camera_id,
+                        frame_num=frame_num,
+                        alert_type="crowd"
+                    )
+                    alert_dict["time_str"] = "LIVE"
+                    app_state.push_alert_to_subscribers(alert_dict)
+                else:
+                    app_state.push_alert_to_subscribers({
+                        "id": 0, "alert_type": "crowd", "person_name": msg,
+                        "similarity": 0, "timestamp": now, "time_str": "LIVE", "frame_num": frame_num,
+                        "job_id": self.camera_id
+                    })
 
             with self._rec_lock:
                 self._records = records

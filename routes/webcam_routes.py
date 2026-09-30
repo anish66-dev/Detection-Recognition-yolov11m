@@ -18,65 +18,146 @@ bp = Blueprint("webcam", __name__)
 # WEBCAM / LIVE ROUTES
 # ============================================================
 
-@bp.route("/webcam/start", methods=["POST"])
-def webcam_start():
-    with app_state._session_lock:
-        if app_state._session is not None and app_state._session.running:
-            return jsonify({"status": "already running", **app_state._session.status()})
+@bp.route("/cameras/start", methods=["POST"])
+def cameras_start():
+    camera_id = request.form.get("camera_id", "LIVE")
+    if app_state.get_session(camera_id) is not None and app_state.get_session(camera_id).running:
+        return jsonify({"status": "already running", **app_state.get_session(camera_id).status()})
 
-        conf = float(request.form.get("conf", 0.40))
-        iou = float(request.form.get("iou", 0.45))
-        thickness = int(request.form.get("thickness", 2))
-        font_size = int(request.form.get("font_size", 16))
-        font_scale = (font_size - 10) / (28 - 10) * 0.65 + 0.35
-        try:
-            zones_input = json.loads(request.form.get("zones", "[]"))
-        except (json.JSONDecodeError, TypeError):
-            zones_input = []
+    conf = float(request.form.get("conf", 0.60))
+    iou = float(request.form.get("iou", 0.45))
+    thickness = int(request.form.get("thickness", 2))
+    font_size = int(request.form.get("font_size", 16))
+    font_scale = (font_size - 10) / (28 - 10) * 0.65 + 0.35
+    try:
+        zones_input = json.loads(request.form.get("zones", "[]"))
+    except (json.JSONDecodeError, TypeError):
+        zones_input = []
 
-        intruder_detection = request.form.get("intruder_detection", "1") == "1"
-        source_spec = request.form.get("source", "0")
+    intruder_detection = request.form.get("intruder_detection", "1") == "1"
+    source_spec = request.form.get("source", "0")
 
-        session = LiveSession(source_spec, conf, iou, thickness, font_scale,
-                              zones_input, intruder_detection)
-        if not session.start():
-            return jsonify({"error": session.error or "Failed to start camera"}), 400
+    session = LiveSession(camera_id, source_spec, conf, iou, thickness, font_scale,
+                          zones_input, intruder_detection)
+    if not session.start():
+        return jsonify({"error": session.error or "Failed to start camera"}), 400
 
-        app_state._session = session
+    app_state.add_session(camera_id, session)
 
     # Give capture a moment so the first status call is meaningful.
     time.sleep(0.6)
-    if app_state._session.error:
-        err = app_state._session.error
-        app_state._session.stop()
+    if session.error:
+        err = session.error
+        session.stop()
+        app_state.remove_session(camera_id)
         return jsonify({"error": err}), 400
 
-    return jsonify({"status": "started", **app_state._session.status()})
+    return jsonify({"status": "started", "camera_id": camera_id, **session.status()})
 
+@bp.route("/cameras", methods=["GET"])
+def cameras_list():
+    return jsonify({"cameras": app_state.active_camera_ids()})
+
+@bp.route("/cameras/<camera_id>/status", methods=["GET"])
+def cameras_status(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is None:
+        return jsonify({"running": False, "error": None, "has_frame": False}), 404
+    return jsonify(session.status())
+
+@bp.route("/cameras/<camera_id>/stop", methods=["POST"])
+def cameras_stop(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is not None:
+        session.stop()
+        app_state.remove_session(camera_id)
+    return jsonify({"status": "stopped", "camera_id": camera_id})
+
+@bp.route("/cameras/<camera_id>/config", methods=["POST"])
+def cameras_config(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is None:
+        return jsonify({"error": "Camera not found"}), 404
+        
+    if "zones" in request.form:
+        try:
+            zones_input = json.loads(request.form.get("zones", "[]"))
+            session.zones_input = zones_input
+            session.zones = [] # forces normalization on next frame
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+            
+    if "intruder_detection" in request.form:
+        session.intruder_detection = request.form.get("intruder_detection") == "1"
+        
+    return jsonify({"status": "ok"})
+
+@bp.route("/cameras/stop-all", methods=["POST"])
+def cameras_stop_all():
+    for cam_id in app_state.active_camera_ids():
+        session = app_state.get_session(cam_id)
+        if session is not None:
+            session.stop()
+            app_state.remove_session(cam_id)
+    return jsonify({"status": "all stopped"})
+
+@bp.route("/cameras/<camera_id>/stream", methods=["GET"])
+def cameras_stream(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is None or not session.running:
+        return "Camera not started.", 400
+    return Response(session.frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+@bp.route("/cameras/<camera_id>/snapshot", methods=["GET"])
+def cameras_snapshot(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is None or not session.running:
+        return "Camera not started.", 400
+    
+    with session._jpeg_lock:
+        if session._jpeg is None:
+            return "No frame yet.", 400
+        frame_bytes = session._jpeg
+        
+    return Response(frame_bytes, mimetype='image/jpeg')
+
+@bp.route("/cameras/<camera_id>/zones", methods=["GET"])
+def cameras_get_zones(camera_id):
+    session = app_state.get_session(camera_id)
+    if session is None:
+        return jsonify({"error": "Camera not found"}), 404
+    return jsonify({
+        "zones": session.zones_input or [],
+        "intruder_detection": session.intruder_detection
+    })
+
+
+# ── Backward Compatibility ──
+
+@bp.route("/webcam/start", methods=["POST"])
+def webcam_start():
+    # Force ID to LIVE for legacy calls
+    d = request.form.to_dict()
+    d["camera_id"] = "LIVE"
+    request.form = request.form.__class__(d)
+    return cameras_start()
 
 @bp.route("/webcam/status", methods=["GET"])
 def webcam_status():
-    if app_state._session is None:
+    session = app_state.get_session("LIVE")
+    if session is None:
         return jsonify({"running": False, "error": None, "has_frame": False})
-    return jsonify(app_state._session.status())
-
+    return jsonify(session.status())
 
 @bp.route("/webcam/stop", methods=["POST"])
 def webcam_stop():
-    with app_state._session_lock:
-        if app_state._session is not None:
-            app_state._session.stop()
-            app_state._session = None
-    return jsonify({"status": "stopped"})
-
+    return cameras_stop("LIVE")
 
 @bp.route("/webcam/stream", methods=["GET"])
 def webcam_stream():
-    if app_state._session is None or not app_state._session.running:
-        return "Webcam not started. Call /webcam/start first.", 400
-    return Response(app_state._session.frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame',
-                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+    return cameras_stream("LIVE")
 
 
 # ============================================================

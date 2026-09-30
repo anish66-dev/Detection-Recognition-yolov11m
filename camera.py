@@ -146,10 +146,11 @@ class CameraSource:
             self._reconnects = 0
             return True, frame
 
-        # Network streams get a few reconnection attempts before giving up.
-        if self.kind == "url" and self._reconnects < 5:
+        # Network streams get automatic infinite reconnections.
+        if self.kind == "url":
             self._reconnects += 1
-            print(f"[WARN] Stream dropped, reconnect attempt {self._reconnects}...")
+            if self._reconnects % 10 == 1:
+                print(f"[WARN] Stream dropped, reconnect attempt {self._reconnects}...")
             try:
                 self.cap.release()
             except Exception:
@@ -157,6 +158,8 @@ class CameraSource:
             time.sleep(1.0)
             if self.open():
                 return self.read()
+            return False, None
+            
         return False, None
 
     def dimensions(self, fallback_frame=None):

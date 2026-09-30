@@ -86,7 +86,10 @@ class AlertEngine:
     @staticmethod
     def _rule_restricted_entry(rec):
         if rec["identity_state"] == "known" and rec["identity_status"] == "blocklisted":
-            return True, rec["identity_name"], rec["identity_sim"], rec["identity_name"]
+            name = rec["identity_name"]
+            if rec.get("zone"):
+                name = f"{name} (in {rec['zone']})"
+            return True, name, rec["identity_sim"], rec["identity_name"]
         return False, None, 0.0, None
 
     @staticmethod
@@ -96,14 +99,26 @@ class AlertEngine:
         if not intruder_detection or not has_enrollment:
             return False, None, 0.0, None
         if rec["identity_state"] == "unknown":
-            return True, "Unknown Intruder", rec["identity_sim"], "unknown"
+            name = "Unknown Intruder"
+            if rec.get("zone"):
+                name = f"{name} (in {rec['zone']})"
+            return True, name, rec["identity_sim"], "unknown"
         return False, None, 0.0, None
 
     @staticmethod
     def _rule_zone_intrusion(rec):
         zone = rec.get("zone")
         if zone:
-            return True, f"Zone Intrusion: {zone}", 0.0, zone
+            # Check zone authorization
+            import app_state
+            authorized = app_state.zone_authorizations_cache.get(zone, [])
+            pid = rec.get("identity_id")
+            
+            if pid and pid in authorized:
+                return False, None, 0.0, None
+                
+            name = rec.get("identity_name") or "Unknown Person"
+            return True, f"{name} entered restricted {zone}", 0.0, zone
         return False, None, 0.0, None
 
     # ── evaluation ───────────────────────────────────────────────────────────

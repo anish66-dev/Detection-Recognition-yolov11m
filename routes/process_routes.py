@@ -159,6 +159,17 @@ def _process_worker(job_id, input_path, conf_thresh, iou_thresh, thickness, font
         job['status']['count'] = count
         job['status']['zone_counts'] = zone_counts
         job['status']['preview_fps'] = preview_fps
+        job['status']['crowd'] = {
+            **crowd_stats,
+            "trend": crowd_monitor.get_status()["trend"],
+            "dominant_direction": crowd_monitor.get_status()["dominant_direction"],
+            "status": crowd_monitor.get_status()["status"],
+            "events": crowd_monitor.get_status()["events"],
+            "zones": {
+                z: {"count": c, "status": crowd_monitor.get_status()["zone_status"].get(z, "NORMAL")}
+                for z, c in crowd_stats.get("zones", {}).items()
+            }
+        }
 
         # Throttle the SSE preview. Base64-encoding every frame just to have the
         # browser drop most of them wastes real CPU that YOLO needs.
@@ -170,9 +181,23 @@ def _process_worker(job_id, input_path, conf_thresh, iou_thresh, thickness, font
 
             ok, jpeg = cv2.imencode('.jpg', preview_frame, [cv2.IMWRITE_JPEG_QUALITY, 45])
             if ok:
+                monitor_st = crowd_monitor.get_status()
                 stats_json = json.dumps({
                     "frame": frame_num, "total": total, "count": count,
-                    "zones": zone_counts, "fps": preview_fps
+                    "zones": zone_counts, "fps": preview_fps,
+                    "crowd": {
+                        "current_count": crowd_stats.get("current_count", count),
+                        "tracked_count": crowd_stats.get("tracked_count", 0),
+                        "estimated_count": crowd_stats.get("estimated_count", 0),
+                        "density_active": crowd_stats.get("density_active", False),
+                        "peak_count": crowd_stats.get("peak_count", 0),
+                        "average_count": crowd_stats.get("average_count", 0),
+                        "minimum_count": crowd_stats.get("minimum_count", 0),
+                        "density_level": crowd_stats.get("density_level", "LOW"),
+                        "status": monitor_st["status"],
+                        "trend": monitor_st["trend"],
+                        "dominant_direction": monitor_st["dominant_direction"],
+                    }
                 })
                 try:
                     job['frame_queue'].put_nowait({

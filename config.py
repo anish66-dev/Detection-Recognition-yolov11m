@@ -40,8 +40,8 @@ IOU_MIN, IOU_MAX   = 0.30, 0.75
 CALIBRATION_SAMPLES = 15
 
 # Tracking lifecycle
-TRACK_MAX_MISSES = 30    # frames track survives unmatched (~1s at 30fps)
-TRACK_MIN_HITS   = 3     # detections before a track is confirmed
+TRACK_MAX_MISSES = 2     # frames track survives unmatched before dying
+TRACK_MIN_HITS   = 2     # detections before a track is confirmed (faster box appearance)
 
 # Crowd analytics
 CROWD_WARNING_THRESHOLD = 10   # count >= this → CROWDED
@@ -69,7 +69,7 @@ FACE_CONTAINMENT_MIN = 0.60
 # lives on the track rather than on the frame, it can run on a subset of frames
 # without the label flickering.
 RECOG_STRIDE_VIDEO = 3
-RECOG_STRIDE_LIVE = 4
+RECOG_STRIDE_LIVE = 8   # run face recognition every 8th inference frame to reduce identity flicker
 
 # Live pipeline tuning
 LIVE_DISPLAY_FPS = 25          # render/encode rate; independent of inference rate
